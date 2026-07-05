@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Xác định cách đóng gói và chạy hệ thống ở môi trường local trước khi nghĩ tới cloud.
+Xác định cách đóng gói và chạy hệ thống với PostgreSQL được quản lý qua Supabase.
 
 ## MVP deployment target
 
 - Docker
 - Docker Compose
-- local-first execution
+- Supabase PostgreSQL as the managed database
 
 ## Environments
 
@@ -22,7 +22,7 @@ Xác định cách đóng gói và chạy hệ thống ở môi trường local 
 
 - web app
 - API app
-- PostgreSQL
+- Supabase PostgreSQL
 - Redis
 
 ## Optional support
@@ -31,10 +31,11 @@ Xác định cách đóng gói và chạy hệ thống ở môi trường local 
 
 ## Rules
 
-- local development must be reproducible
+- local development must be reproducible against the managed Supabase database
 - environment variables must be externalized
 - deployment artifacts must not contain secrets
 - database migrations run before application startup in staging and production
+- Alembic is the source of truth for schema changes
 - rollback should revert app image first and schema second only if safe
 - backups are required for production PostgreSQL
 

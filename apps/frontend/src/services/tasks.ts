@@ -5,6 +5,8 @@ export type Task = {
   title: string;
   description: string | null;
   deadline: string | null;
+  start_time: string | null;
+  task_type: string;
   priority: string | null;
   estimated_duration: number | null;
   status: string;
@@ -16,6 +18,8 @@ export type TaskCreateInput = {
   title: string;
   description?: string | null;
   deadline?: string | null;
+  start_time?: string | null;
+  task_type?: string;
   priority?: string | null;
   estimated_duration?: number | null;
   tags?: string[];

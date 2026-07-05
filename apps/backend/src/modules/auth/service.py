@@ -15,7 +15,7 @@ class AuthService:
     def register(self, email: str, password: str, name: str, timezone: str) -> User:
         existing = self.db.query(User).filter(User.email == email).one_or_none()
         if existing:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="AUTH_EMAIL_ALREADY_EXISTS")
 
         user = User(email=email, password_hash=hash_password(password), name=name, timezone=timezone)
         self.db.add(user)
@@ -26,7 +26,7 @@ class AuthService:
     def login(self, email: str, password: str) -> tuple[User, str, str]:
         user = self.db.query(User).filter(User.email == email).one_or_none()
         if not user or not verify_password(password, user.password_hash):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="AUTH_INVALID_CREDENTIALS")
 
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
@@ -45,9 +45,9 @@ class AuthService:
         try:
             payload = decode_token(refresh_token, settings.jwt_refresh_secret)
         except Exception as exc:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token") from exc
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="AUTH_INVALID_REFRESH_TOKEN") from exc
         if payload.get("typ") != "refresh":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="AUTH_INVALID_REFRESH_TOKEN")
         user_id = payload.get("sub")
         token_row = (
             self.db.query(RefreshToken)
@@ -55,7 +55,7 @@ class AuthService:
             .one_or_none()
         )
         if not token_row:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="AUTH_INVALID_REFRESH_TOKEN")
         token_row.revoked_at = datetime.now(UTC)
         access_token = create_access_token(user_id)
         new_refresh_token = create_refresh_token(user_id)
@@ -77,7 +77,15 @@ class AuthService:
         except Exception:
             return
         user_id = payload.get("sub")
-        token_row = self.db.query(RefreshToken).filter(RefreshToken.user_id == user_id, RefreshToken.token_hash == token_hash(refresh_token), RefreshToken.revoked_at.is_(None)).one_or_none()
+        token_row = (
+            self.db.query(RefreshToken)
+            .filter(
+                RefreshToken.user_id == user_id,
+                RefreshToken.token_hash == token_hash(refresh_token),
+                RefreshToken.revoked_at.is_(None),
+            )
+            .one_or_none()
+        )
         if token_row:
             token_row.revoked_at = datetime.now(UTC)
             self.db.commit()

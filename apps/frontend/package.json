@@ -12,6 +12,7 @@
     "@ai-planner/types": "file:../../packages/types",
     "@ai-planner/ui": "file:../../packages/ui",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.42.2",
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",

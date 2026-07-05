@@ -68,12 +68,12 @@ class ProgressService:
     def _get_task(self, task_id: str) -> Task:
         task = self.db.get(Task, task_id)
         if not task or task.user_id != self.user_id or task.deleted_at is not None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="TASK_NOT_FOUND")
         return task
 
     def _ensure_not_completed(self, task: Task) -> None:
         if task.status == "completed":
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Task is already completed")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="TASK_ALREADY_COMPLETED")
 
     def _sync_schedule_item(self, task: Task, status_value: str) -> None:
         if not task.daily_plan_id:

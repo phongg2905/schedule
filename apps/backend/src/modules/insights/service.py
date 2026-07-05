@@ -14,7 +14,11 @@ class InsightService:
 
     def today(self) -> DaySummary:
         summary_date = date.today().isoformat()
-        existing = self.db.query(DaySummary).filter(DaySummary.user_id == self.user_id, DaySummary.summary_date == summary_date).one_or_none()
+        existing = (
+            self.db.query(DaySummary)
+            .filter(DaySummary.user_id == self.user_id, DaySummary.summary_date == summary_date)
+            .one_or_none()
+        )
         payload = self._build_payload(summary_date)
         payload_changed = existing is None or existing.summary_payload != payload
         if existing is None:
@@ -40,7 +44,12 @@ class InsightService:
 
     def _build_payload(self, summary_date: str) -> dict:
         tasks = self.db.query(Task).filter(Task.user_id == self.user_id, Task.deleted_at.is_(None)).all()
-        completed = [task for task in tasks if task.status == "completed" and task.completed_at and task.completed_at.date().isoformat() == summary_date]
+        completed = [
+            task for task in tasks
+            if task.status == "completed"
+            and task.completed_at
+            and task.completed_at.date().isoformat() == summary_date
+        ]
         skipped = [task for task in tasks if task.status == "skipped"]
         deferred = [task for task in tasks if task.status == "deferred"]
         pending = [task for task in tasks if task.status in {"todo", "in_progress"}]

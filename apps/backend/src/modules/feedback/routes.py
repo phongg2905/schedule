@@ -10,7 +10,11 @@ router = APIRouter()
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_feedback(payload: FeedbackCreateRequest, user=Depends(get_user_from_access_token), db: Session = Depends(db_session)) -> dict[str, str]:
-    feedback = Feedback(id=new_id(), user_id=user.id, target_type=payload.target_type, target_id=payload.target_id, rating=payload.rating, note=payload.note)
+    feedback = Feedback(
+        id=new_id(), user_id=user.id,
+        target_type=payload.target_type, target_id=payload.target_id,
+        rating=payload.rating, note=payload.note,
+    )
     db.add(feedback)
     db.add(
         ActivityEvent(

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from src.db.models import ActivityEvent, User, UserSchedulePreference
+from src.db.models import ActivityEvent, User, UserPreference, UserSchedulePreference
 
 
 class PreferencesService:
@@ -69,6 +69,42 @@ class PreferencesService:
                     "day_offs": day_offs,
                     "focus_hours": focus_hours,
                 },
+            )
+        )
+        self.db.commit()
+        self.db.refresh(preference)
+        return preference
+
+
+class LanguagePreferencesService:
+    def __init__(self, db: Session, user_id: str) -> None:
+        self.db = db
+        self.user_id = user_id
+
+    def get(self) -> UserPreference:
+        preference = self.db.query(UserPreference).filter(UserPreference.user_id == self.user_id).one_or_none()
+        if preference is None:
+            preference = UserPreference(user_id=self.user_id, language="en")
+            self.db.add(preference)
+            self.db.commit()
+            self.db.refresh(preference)
+        return preference
+
+    def update(self, *, language: str) -> UserPreference:
+        preference = self.db.query(UserPreference).filter(UserPreference.user_id == self.user_id).one_or_none()
+        if preference is None:
+            preference = UserPreference(user_id=self.user_id)
+            self.db.add(preference)
+
+        preference.language = language
+        self.db.add(
+            ActivityEvent(
+                user_id=self.user_id,
+                event_type="language_updated",
+                entity_type="user_preference",
+                entity_id=self.user_id,
+                source="manual",
+                payload={"language": language},
             )
         )
         self.db.commit()

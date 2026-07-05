@@ -13,4 +13,3 @@ class DelayTaskRequest(BaseModel):
 class MoveTaskRequest(BaseModel):
     target_date: str = Field(min_length=10, max_length=10)
     reason: str | None = None
-

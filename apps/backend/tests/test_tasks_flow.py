@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from pathlib import Path
 from uuid import uuid4
 import sys
@@ -31,6 +32,9 @@ def _login(client: TestClient) -> None:
 
 def test_task_crud_flow() -> None:
     with TestClient(app) as client:
+        today = date.today()
+        deadline = (today + timedelta(days=1)).isoformat()
+
         _login(client)
 
         create_response = client.post(
@@ -39,7 +43,7 @@ def test_task_crud_flow() -> None:
                 "title": "Plan weekly review",
                 "description": "Prepare weekly notes",
                 "estimated_duration": 45,
-                "deadline": "2026-07-05",
+                "deadline": deadline,
                 "priority": "high",
                 "tags": ["work", "review"],
             },
@@ -47,7 +51,7 @@ def test_task_crud_flow() -> None:
         assert create_response.status_code == 201
         task = create_response.json()
         assert task["title"] == "Plan weekly review"
-        assert task["deadline"] == "2026-07-05"
+        assert task["deadline"] == deadline
         assert task["tags"] == ["work", "review"]
         assert task["completed_at"] is None
 

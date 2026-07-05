@@ -14,7 +14,12 @@ def new_id() -> str:
 
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
 
 class SoftDeleteMixin:
@@ -33,7 +38,18 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
 
     tasks: Mapped[list["Task"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     daily_plans: Mapped[list["DailyPlan"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    preferences: Mapped["UserPreference | None"] = relationship(back_populates="user", cascade="all, delete-orphan", uselist=False)
     schedule_preferences: Mapped["UserSchedulePreference | None"] = relationship(back_populates="user", cascade="all, delete-orphan", uselist=False)
+
+
+class UserPreference(Base, TimestampMixin):
+    __tablename__ = "user_preferences"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True, index=True, nullable=False)
+    language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
+
+    user: Mapped["User"] = relationship(back_populates="preferences")
 
 
 class UserSchedulePreference(Base, TimestampMixin):
@@ -102,6 +118,8 @@ class Task(Base, TimestampMixin, SoftDeleteMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     estimated_duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
     deadline: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    start_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    task_type: Mapped[str] = mapped_column(String(20), default="scheduled", nullable=False)
     priority: Mapped[str | None] = mapped_column(String(20), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="todo", nullable=False)
     tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)

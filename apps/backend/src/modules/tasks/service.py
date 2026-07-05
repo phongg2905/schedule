@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from src.db.models import ActivityEvent, Task, new_id
@@ -22,9 +23,12 @@ class TaskService:
         description: str | None,
         estimated_duration: int | None,
         deadline: str | None,
+        start_time: str | None,
+        task_type: str,
         priority: str | None,
         tags: list[str],
     ) -> Task:
+        self._validate_time_overlap(start_time, estimated_duration, task_type, exclude_task_id=None)
         task = Task(
             id=new_id(),
             user_id=self.user_id,
@@ -32,6 +36,8 @@ class TaskService:
             description=description,
             estimated_duration=estimated_duration,
             deadline=deadline,
+            start_time=start_time,
+            task_type=task_type,
             priority=priority or "normal",
             tags=tags,
             status="todo",
@@ -47,8 +53,10 @@ class TaskService:
                 source="manual",
                 payload={
                     "title": title,
+                    "task_type": task_type,
                     "priority": priority or "normal",
                     "deadline": deadline,
+                    "start_time": start_time,
                     "estimated_duration": estimated_duration,
                     "tags": tags,
                     "source": "manual",
@@ -62,11 +70,15 @@ class TaskService:
     def get(self, task_id: str) -> Task:
         task = self.db.get(Task, task_id)
         if not task or task.user_id != self.user_id or task.deleted_at is not None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="TASK_NOT_FOUND")
         return task
 
     def update(self, task_id: str, **fields) -> Task:
         task = self.get(task_id)
+        start_time = fields.get("start_time", task.start_time)
+        estimated_duration = fields.get("estimated_duration", task.estimated_duration)
+        task_type = fields.get("task_type", task.task_type)
+        self._validate_time_overlap(start_time, estimated_duration, task_type, exclude_task_id=task_id)
         for key, value in fields.items():
             if value is not None:
                 setattr(task, key, value)
@@ -103,3 +115,46 @@ class TaskService:
             )
         )
         self.db.commit()
+
+    def _validate_time_overlap(
+        self,
+        start_time: str | None,
+        estimated_duration: int | None,
+        task_type: str,
+        exclude_task_id: str | None,
+    ) -> None:
+        if task_type == "flexible":
+            return
+        if not start_time or not estimated_duration:
+            return
+        new_start_minutes = self._time_to_minutes(start_time)
+        new_end_minutes = new_start_minutes + estimated_duration
+
+        query = self.db.query(Task).filter(
+            Task.user_id == self.user_id,
+            Task.deleted_at.is_(None),
+            Task.task_type == "scheduled",
+            Task.start_time.isnot(None),
+            Task.estimated_duration.isnot(None),
+        )
+        if exclude_task_id:
+            query = query.filter(Task.id != exclude_task_id)
+
+        conflicting = query.all()
+        for existing in conflicting:
+            existing_start = self._time_to_minutes(existing.start_time)
+            existing_end = existing_start + existing.estimated_duration
+            if existing_start < new_end_minutes and existing_end > new_start_minutes:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="TASK_TIME_CONFLICT",
+                )
+
+    @staticmethod
+    def _time_to_minutes(time_str: str) -> int:
+        parts = time_str.split(":")
+        return int(parts[0]) * 60 + int(parts[1])
+
+    @staticmethod
+    def _minutes_to_time(minutes: int) -> str:
+        return f"{minutes // 60:02d}:{minutes % 60:02d}"

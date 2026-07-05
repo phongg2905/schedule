@@ -1,7 +1,8 @@
 from collections.abc import Callable
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 
 class AppError(Exception):
@@ -12,11 +13,26 @@ class AppError(Exception):
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(HTTPException)
+    async def _handle_http_exception(_: Request, exc: HTTPException) -> JSONResponse:
+        error_code = exc.detail if isinstance(exc.detail, str) else "HTTP_ERROR"
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error_code": error_code, "message": error_code},
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def _handle_validation_error(_: Request, __: RequestValidationError) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={"error_code": "VALIDATION_ERROR", "message": "VALIDATION_ERROR"},
+        )
+
     @app.exception_handler(AppError)
     async def _handle_app_error(_: Request, exc: AppError) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
-            content={"error_code": exc.error_code, "message": exc.message},
+            content={"error_code": exc.error_code, "message": exc.error_code},
         )
 
     @app.exception_handler(Exception)
