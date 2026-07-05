@@ -8,6 +8,8 @@ class TaskCreateRequest(BaseModel):
     description: str | None = None
     estimated_duration: int | None = None
     deadline: str | None = None
+    start_time: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+    task_type: str = Field(default="scheduled", pattern=r"^(scheduled|flexible)$")
     priority: str | None = None
     tags: list[str] = Field(default_factory=list)
 
@@ -17,6 +19,8 @@ class TaskUpdateRequest(BaseModel):
     description: str | None = None
     estimated_duration: int | None = None
     deadline: str | None = None
+    start_time: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+    task_type: str | None = Field(default=None, pattern=r"^(scheduled|flexible)$")
     priority: str | None = None
     tags: list[str] | None = None
     status: str | None = None
@@ -28,6 +32,8 @@ class TaskResponse(BaseModel):
     description: str | None
     estimated_duration: int | None
     deadline: str | None
+    start_time: str | None
+    task_type: str
     priority: str | None
     status: str
     tags: list[str]

@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from pathlib import Path
 from uuid import uuid4
 import sys
@@ -23,6 +24,11 @@ def _credentials() -> dict[str, str]:
 
 def test_ai_daily_plan_generation_and_explanation() -> None:
     with TestClient(app) as client:
+        today = date.today()
+        plan_date = today.isoformat()
+        first_deadline = (today + timedelta(days=1)).isoformat()
+        second_deadline = (today + timedelta(days=2)).isoformat()
+
         credentials = _credentials()
         assert client.post("/api/v1/auth/register", json=credentials).status_code == 200
         assert client.post("/api/v1/auth/login", json={"email": credentials["email"], "password": credentials["password"]}).status_code == 200
@@ -49,7 +55,7 @@ def test_ai_daily_plan_generation_and_explanation() -> None:
                 "title": "Write proposal",
                 "description": "Draft the weekly proposal",
                 "estimated_duration": 45,
-                "deadline": "2026-07-01",
+                "deadline": first_deadline,
                 "priority": "high",
                 "tags": ["writing"],
             },
@@ -60,7 +66,7 @@ def test_ai_daily_plan_generation_and_explanation() -> None:
                 "title": "Reply emails",
                 "description": "Clear inbox",
                 "estimated_duration": 30,
-                "deadline": "2026-07-02",
+                "deadline": second_deadline,
                 "priority": "normal",
                 "tags": ["admin"],
             },
@@ -68,7 +74,7 @@ def test_ai_daily_plan_generation_and_explanation() -> None:
 
         generate_response = client.post(
             "/api/v1/ai/generate-daily-plan",
-            json={"plan_date": "2026-07-01", "context_window_type": "ai_generation", "trigger_source": "manual"},
+            json={"plan_date": plan_date, "context_window_type": "ai_generation", "trigger_source": "manual"},
         )
         assert generate_response.status_code == 200
         generated_plan = generate_response.json()

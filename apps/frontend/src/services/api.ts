@@ -1,3 +1,5 @@
+import { ApiError } from "@/lib/api-error";
+
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 const authPathsWithoutAutoRefresh = new Set(["/auth/login", "/auth/register", "/auth/logout", "/auth/refresh"]);
@@ -29,8 +31,9 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, retryOnU
   }
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { message?: string; detail?: string } | null;
-    throw new Error(payload?.message ?? payload?.detail ?? `Request failed with status ${response.status}`);
+    const payload = (await response.json().catch(() => null)) as { error_code?: string; message?: string; detail?: string } | null;
+    const errorCode = payload?.error_code ?? payload?.detail ?? "REQUEST_FAILED";
+    throw new ApiError(errorCode, response.status);
   }
 
   if (response.status === 204) {

@@ -1,5 +1,7 @@
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from src.core.config import get_settings
 from src.db.base import Base
@@ -8,15 +10,26 @@ _engine = None
 _session_factory = None
 
 
-def _create_engine():
-    settings = get_settings()
-    return create_engine(settings.database_url, future=True, pool_pre_ping=True)
+def _create_engine(database_url: str):
+    url = make_url(database_url)
+    if url.drivername == "postgresql":
+        url = url.set(drivername="postgresql+psycopg")
+    if "pgbouncer" in url.query:
+        url = url.set(query={key: value for key, value in url.query.items() if key != "pgbouncer"})
+    engine_kwargs = {"future": True, "pool_pre_ping": True}
+    if url.drivername.startswith("sqlite"):
+        engine_kwargs["connect_args"] = {"check_same_thread": False}
+        engine_kwargs["poolclass"] = StaticPool
+    return create_engine(url.render_as_string(hide_password=False), **engine_kwargs)
 
 
 def get_engine():
     global _engine
     if _engine is None:
-        _engine = _create_engine()
+        settings = get_settings()
+        if not settings.database_url:
+            raise RuntimeError("DATABASE_URL is not configured.")
+        _engine = _create_engine(settings.database_url)
     return _engine
 
 
@@ -34,8 +47,6 @@ def get_db() -> Session:
 def init_db() -> None:
     from src.db import models  # noqa: F401
 
-    settings = get_settings()
     engine = get_engine()
-    if settings.database_url.startswith("sqlite"):
-        Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    if engine.dialect.name == "sqlite":
+        Base.metadata.create_all(bind=engine)

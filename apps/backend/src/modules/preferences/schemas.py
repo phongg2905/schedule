@@ -1,4 +1,14 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+
+class LanguagePreferenceResponse(BaseModel):
+    language: Literal["en", "vi"]
+
+
+class LanguagePreferenceUpdateRequest(BaseModel):
+    language: Literal["en", "vi"]
 
 
 class PreferencesUpdateRequest(BaseModel):

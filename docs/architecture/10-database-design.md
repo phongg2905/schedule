@@ -6,7 +6,7 @@ Mô tả database ở mức triển khai kỹ thuật cho Phase 4.
 
 ## Database choice
 
-- PostgreSQL
+- PostgreSQL on Supabase
 
 ## Design principles
 
@@ -170,7 +170,7 @@ Mô tả database ở mức triển khai kỹ thuật cho Phase 4.
 
 ## Migration strategy
 
-- use incremental migrations
+- use incremental Alembic migrations
 - keep schema changes backward compatible when possible
 - never edit old migrations after they are applied in shared environments
-
+- apply migrations against the Supabase direct connection URL

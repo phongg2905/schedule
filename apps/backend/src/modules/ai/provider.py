@@ -19,26 +19,37 @@ class AdjustmentResult:
 
 
 class DailyPlanAIProvider(Protocol):
-    def rank_tasks(self, context: dict) -> TaskOrderResult: ...
+    def rank_tasks(self, context: dict) -> TaskOrderResult:
+        ...
 
-    def explain_plan(self, context: dict) -> str: ...
+    def explain_plan(self, context: dict) -> str:
+        ...
 
-    def adjust_plan(self, context: dict) -> AdjustmentResult: ...
+    def adjust_plan(self, context: dict) -> AdjustmentResult:
+        ...
 
 
 class LocalDailyPlanAIProvider:
     def rank_tasks(self, context: dict) -> TaskOrderResult:
         ordered_task_ids = [task["id"] for task in context["tasks"]]
-        explanation = "Local fallback used because no OpenAI key is configured."
+        explanation = self._localized_text(
+            context,
+            en="Local fallback used because no OpenAI key is configured.",
+            vi="Bản dự phòng cục bộ được dùng vì chưa cấu hình OpenAI key.",
+        )
         return TaskOrderResult(ordered_task_ids=ordered_task_ids, explanation=explanation)
 
     def explain_plan(self, context: dict) -> str:
         plan = context["plan"]
         items = plan.get("items", [])
         if not items:
-            return "No tasks were scheduled in the plan."
+            return self._localized_text(context, en="No tasks were scheduled in the plan.", vi="Không có công việc nào được xếp trong kế hoạch.")
         first_item = items[0]
-        return f"{first_item['label']} appears first because the planner prioritized urgency, deadlines, and available working hours."
+        return self._localized_text(
+            context,
+            en=f"{first_item['label']} appears first because the planner prioritized urgency, deadlines, and available working hours.",
+            vi=f"{first_item['label']} đứng đầu vì bộ lập lịch ưu tiên độ gấp, hạn chót và khung giờ làm việc khả dụng.",
+        )
 
     def adjust_plan(self, context: dict) -> AdjustmentResult:
         change_description = context.get("change_description", "")
@@ -46,17 +57,40 @@ class LocalDailyPlanAIProvider:
         items = plan.get("items", [])
         if not items:
             return AdjustmentResult(
-                suggestion="No schedule changes were applied because the current plan is empty.",
-                explanation="Local fallback used because no OpenAI key is configured.",
+                suggestion=self._localized_text(
+                    context,
+                    en="No schedule changes were applied because the current plan is empty.",
+                    vi="Không có thay đổi lịch nào được áp dụng vì kế hoạch hiện tại đang trống.",
+                ),
+                explanation=self._localized_text(
+                    context,
+                    en="Local fallback used because no OpenAI key is configured.",
+                    vi="Bản dự phòng cục bộ được dùng vì chưa cấu hình OpenAI key.",
+                ),
             )
         first_item = items[0]
-        suggestion = f"Move {first_item['label']} later and keep the rest of the plan unchanged."
+        suggestion = self._localized_text(
+            context,
+            en=f"Move {first_item['label']} later and keep the rest of the plan unchanged.",
+            vi=f"Di chuyển {first_item['label']} sang thời điểm muộn hơn và giữ nguyên phần còn lại của kế hoạch.",
+        )
         if change_description:
-            suggestion = f"After '{change_description}', {suggestion}"
+            suggestion = self._localized_text(
+                context,
+                en=f"After '{change_description}', {suggestion}",
+                vi=f"Sau thay đổi '{change_description}', {suggestion}",
+            )
         return AdjustmentResult(
             suggestion=suggestion,
-            explanation="Local fallback used because no OpenAI key is configured.",
+            explanation=self._localized_text(
+                context,
+                en="Local fallback used because no OpenAI key is configured.",
+                vi="Bản dự phòng cục bộ được dùng vì chưa cấu hình OpenAI key.",
+            ),
         )
+
+    def _localized_text(self, context: dict, *, en: str, vi: str) -> str:
+        return vi if str(context.get("language", "en")).lower().startswith("vi") else en
 
 
 class OpenAIDailyPlanProvider:
@@ -65,6 +99,8 @@ class OpenAIDailyPlanProvider:
         self.model = model
 
     def rank_tasks(self, context: dict) -> TaskOrderResult:
+        language = str(context.get("language", "en"))
+        language_label = self._language_label(language)
         payload = {
             "model": self.model,
             "temperature": 0.2,
@@ -73,8 +109,9 @@ class OpenAIDailyPlanProvider:
                 {
                     "role": "system",
                     "content": (
-                        "You are a planning assistant. Order the tasks for a day. "
-                        "Return JSON with keys ordered_task_ids and explanation. "
+                        f"You are a planning assistant. Always answer in the user's preferred language: {language_label}. "
+                        "Only translate natural-language text. Do not translate JSON keys, enum values, field names, or schema. "
+                        "Order the tasks for a day. Return JSON with keys ordered_task_ids and explanation. "
                         "Only use the task ids provided in the input. Keep the explanation short."
                     ),
                 },
@@ -95,6 +132,8 @@ class OpenAIDailyPlanProvider:
             raise ValueError("Invalid OpenAI response for task ranking") from exc
 
     def explain_plan(self, context: dict) -> str:
+        language = str(context.get("language", "en"))
+        language_label = self._language_label(language)
         payload = {
             "model": self.model,
             "temperature": 0.3,
@@ -102,6 +141,8 @@ class OpenAIDailyPlanProvider:
                 {
                     "role": "system",
                     "content": (
+                        f"Always answer in the user's preferred language: {language_label}. "
+                        "Only translate natural-language text. Do not translate JSON keys, enum values, field names, or schema. "
                         "Explain the plan in one concise paragraph. "
                         "Focus on why the order makes sense for the user. "
                         "Do not mention policy or hidden reasoning."
@@ -120,6 +161,8 @@ class OpenAIDailyPlanProvider:
             raise ValueError("Invalid OpenAI response for plan explanation") from exc
 
     def adjust_plan(self, context: dict) -> AdjustmentResult:
+        language = str(context.get("language", "en"))
+        language_label = self._language_label(language)
         payload = {
             "model": self.model,
             "temperature": 0.3,
@@ -128,6 +171,8 @@ class OpenAIDailyPlanProvider:
                 {
                     "role": "system",
                     "content": (
+                        f"Always answer in the user's preferred language: {language_label}. "
+                        "Only translate natural-language text. Do not translate JSON keys, enum values, field names, or schema. "
                         "Suggest one concise schedule adjustment based on the user's change. "
                         "Return JSON with keys suggestion and explanation. "
                         "Keep both fields short and practical."
@@ -162,6 +207,9 @@ class OpenAIDailyPlanProvider:
                 return json.loads(response.read().decode("utf-8"))
         except error.URLError as exc:
             raise ValueError("OpenAI request failed") from exc
+
+    def _language_label(self, language: str) -> str:
+        return "Vietnamese" if language.lower().startswith("vi") else "English"
 
 
 def build_daily_plan_provider(api_key: str) -> DailyPlanAIProvider:

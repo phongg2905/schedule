@@ -1,13 +1,19 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(str(Path(__file__).resolve().parents[4] / ".env"), ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     environment: str = "development"
-    database_url: str = "sqlite:///./ai_planner_v2.db"
+    database_url: str = ""
+    direct_url: str = ""
     redis_url: str = "redis://localhost:6379/0"
     jwt_secret: str = "change-me"
     jwt_refresh_secret: str = "change-me-refresh"

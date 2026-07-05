@@ -23,4 +23,3 @@ class UserResponse(BaseModel):
 
 class AuthResponse(BaseModel):
     user: UserResponse
-

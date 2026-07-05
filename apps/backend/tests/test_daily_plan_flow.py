@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from pathlib import Path
 from uuid import uuid4
 import sys
@@ -23,6 +24,11 @@ def _credentials() -> dict[str, str]:
 
 def test_rule_based_daily_plan_generation() -> None:
     with TestClient(app) as client:
+        today = date.today()
+        plan_date = today.isoformat()
+        urgent_deadline = today.isoformat()
+        normal_deadline = (today + timedelta(days=2)).isoformat()
+
         credentials = _credentials()
         assert client.post("/api/v1/auth/register", json=credentials).status_code == 200
         assert client.post("/api/v1/auth/login", json={"email": credentials["email"], "password": credentials["password"]}).status_code == 200
@@ -49,7 +55,7 @@ def test_rule_based_daily_plan_generation() -> None:
                 "title": "Urgent task",
                 "description": "Do first",
                 "estimated_duration": 60,
-                "deadline": "2026-07-01",
+                "deadline": urgent_deadline,
                 "priority": "urgent",
                 "tags": ["critical"],
             },
@@ -60,7 +66,7 @@ def test_rule_based_daily_plan_generation() -> None:
                 "title": "Normal task",
                 "description": "Do second",
                 "estimated_duration": 45,
-                "deadline": "2026-07-03",
+                "deadline": normal_deadline,
                 "priority": "normal",
                 "tags": ["later"],
             },
@@ -68,7 +74,7 @@ def test_rule_based_daily_plan_generation() -> None:
 
         generate_response = client.post(
             "/api/v1/daily-plans/generate",
-            json={"plan_date": "2026-07-01", "context_window_type": "rule_based_daily_plan", "trigger_source": "manual"},
+            json={"plan_date": plan_date, "context_window_type": "rule_based_daily_plan", "trigger_source": "manual"},
         )
         assert generate_response.status_code == 201
         plan = generate_response.json()
@@ -80,5 +86,5 @@ def test_rule_based_daily_plan_generation() -> None:
         today_response = client.get("/api/v1/daily-plans/today")
         assert today_response.status_code == 200
         today_plan = today_response.json()
-        assert today_plan["plan_date"] == "2026-07-01"
+        assert today_plan["plan_date"] == plan_date
         assert len(today_plan["items"]) == 2

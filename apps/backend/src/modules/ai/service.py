@@ -6,7 +6,18 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.core.config import get_settings
-from src.db.models import ActivityEvent, AISuggestion, ContextSnapshot, DailyPlan, Schedule, ScheduleItem, Task, UserSchedulePreference, new_id
+from src.db.models import (
+    ActivityEvent,
+    AISuggestion,
+    ContextSnapshot,
+    DailyPlan,
+    Schedule,
+    ScheduleItem,
+    Task,
+    UserPreference,
+    UserSchedulePreference,
+    new_id,
+)
 from src.modules.ai.provider import LocalDailyPlanAIProvider, build_daily_plan_provider
 from src.modules.daily_plans.service import DailyPlanService
 
@@ -19,25 +30,18 @@ class AIService:
     def generate_daily_plan(self, plan_date: str, context_window_type: str, trigger_source: str) -> DailyPlan:
         planner = DailyPlanService(self.db, self.user_id)
         preference = self.db.query(UserSchedulePreference).filter(UserSchedulePreference.user_id == self.user_id).one_or_none()
+        language = self._get_language()
         tasks = planner._list_candidate_tasks()
         provider = build_daily_plan_provider(get_settings().openai_api_key)
-        context = {
-            "plan_date": plan_date,
-            "trigger_source": trigger_source,
-            "context_window_type": context_window_type,
-            "preferences": planner._preferences_payload(preference),
-            "tasks": [
-                {
-                    "id": task.id,
-                    "title": task.title,
-                    "deadline": task.deadline,
-                    "priority": task.priority,
-                    "estimated_duration": task.estimated_duration,
-                    "tags": task.tags,
-                }
-                for task in tasks
-            ],
-        }
+        context = self._build_generation_context(
+            planner=planner,
+            plan_date=plan_date,
+            context_window_type=context_window_type,
+            trigger_source=trigger_source,
+            language=language,
+            preference=preference,
+            tasks=tasks,
+        )
         try:
             ranking = provider.rank_tasks(context)
         except ValueError:
@@ -60,7 +64,11 @@ class AIService:
 
         schedule = self.db.query(Schedule).filter(Schedule.user_id == self.user_id, Schedule.daily_plan_id == plan.id).one_or_none()
         if schedule is None:
-            schedule = Schedule(id=new_id(), user_id=self.user_id, daily_plan=plan, daily_plan_id=plan.id, schedule_date=plan_date, schedule_type="day", source="ai")
+            schedule = Schedule(
+                id=new_id(), user_id=self.user_id,
+                daily_plan_id=plan.id, schedule_date=plan_date,
+                schedule_type="day", source="ai",
+            )
         else:
             schedule.schedule_date = plan_date
             schedule.schedule_type = "day"
@@ -68,7 +76,9 @@ class AIService:
             for item in list(schedule.items):
                 self.db.delete(item)
 
-        scheduled_items, overflow_tasks, day_off = planner._build_schedule_items(plan_date, ordered_tasks, preference, schedule.id, plan.id)
+        scheduled_items, overflow_tasks, day_off = planner._build_schedule_items(
+            plan_date, ordered_tasks, preference, schedule.id, plan.id,
+        )
         plan.explanation = self._build_explanation(ranking.explanation, scheduled_items, overflow_tasks, preference, day_off)
 
         self.db.add(plan)
@@ -122,30 +132,10 @@ class AIService:
     def explain_daily_plan(self, daily_plan_id: str, question: str) -> str:
         plan = self.db.get(DailyPlan, daily_plan_id)
         if not plan or plan.user_id != self.user_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="daily plan not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="DAILY_PLAN_NOT_FOUND")
 
         provider = build_daily_plan_provider(get_settings().openai_api_key)
-        context = {
-            "question": question,
-            "plan": {
-                "id": plan.id,
-                "plan_date": plan.plan_date,
-                "source": plan.source,
-                "explanation": plan.explanation,
-                "items": [
-                    {
-                        "id": item.id,
-                        "label": item.label,
-                        "start_time": item.start_time,
-                        "end_time": item.end_time,
-                        "status": item.status,
-                        "task_id": item.task_id,
-                    }
-                    for schedule in plan.schedules
-                    for item in schedule.items
-                ],
-            },
-        }
+        context = self._build_explanation_context(plan=plan, question=question, language=self._get_language())
         try:
             explanation = provider.explain_plan(context)
         except ValueError:
@@ -167,33 +157,19 @@ class AIService:
     def adjust(self, daily_plan_id: str, change_description: str) -> AISuggestion:
         plan = self.db.get(DailyPlan, daily_plan_id)
         if not plan or plan.user_id != self.user_id:
-            raise ValueError("daily plan not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="DAILY_PLAN_NOT_FOUND")
 
         planner = DailyPlanService(self.db, self.user_id)
         preference = self.db.query(UserSchedulePreference).filter(UserSchedulePreference.user_id == self.user_id).one_or_none()
         provider = build_daily_plan_provider(get_settings().openai_api_key)
-        context = {
-            "daily_plan_id": daily_plan_id,
-            "change_description": change_description,
-            "preferences": planner._preferences_payload(preference),
-            "plan": {
-                "id": plan.id,
-                "plan_date": plan.plan_date,
-                "source": plan.source,
-                "items": [
-                    {
-                        "id": item.id,
-                        "label": item.label,
-                        "start_time": item.start_time,
-                        "end_time": item.end_time,
-                        "status": item.status,
-                        "task_id": item.task_id,
-                    }
-                    for schedule in plan.schedules
-                    for item in schedule.items
-                ],
-            },
-        }
+        context = self._build_adjustment_context(
+            planner=planner,
+            plan=plan,
+            daily_plan_id=daily_plan_id,
+            change_description=change_description,
+            language=self._get_language(),
+            preference=preference,
+        )
         try:
             adjustment = provider.adjust_plan(context)
         except ValueError:
@@ -247,6 +223,84 @@ class AIService:
             remaining = [task for task in tasks if task.id not in ordered_task_ids]
             ordered_tasks.extend(remaining)
         return ordered_tasks
+
+    def _get_language(self) -> str:
+        language_preference = self.db.query(UserPreference).filter(UserPreference.user_id == self.user_id).one_or_none()
+        return language_preference.language if language_preference else "en"
+
+    def _build_generation_context(
+        self,
+        *,
+        planner: DailyPlanService,
+        plan_date: str,
+        context_window_type: str,
+        trigger_source: str,
+        language: str,
+        preference: UserSchedulePreference | None,
+        tasks: list[Task],
+    ) -> dict:
+        return {
+            "plan_date": plan_date,
+            "trigger_source": trigger_source,
+            "context_window_type": context_window_type,
+            "language": language,
+            "preferences": planner._preferences_payload(preference),
+            "tasks": [self._task_context(task) for task in tasks],
+        }
+
+    def _build_explanation_context(self, *, plan: DailyPlan, question: str, language: str) -> dict:
+        return {
+            "question": question,
+            "language": language,
+            "plan": self._plan_context(plan),
+        }
+
+    def _build_adjustment_context(
+        self,
+        *,
+        planner: DailyPlanService,
+        plan: DailyPlan,
+        daily_plan_id: str,
+        change_description: str,
+        language: str,
+        preference: UserSchedulePreference | None,
+    ) -> dict:
+        return {
+            "daily_plan_id": daily_plan_id,
+            "change_description": change_description,
+            "language": language,
+            "preferences": planner._preferences_payload(preference),
+            "plan": self._plan_context(plan),
+        }
+
+    def _plan_context(self, plan: DailyPlan) -> dict:
+        return {
+            "id": plan.id,
+            "plan_date": plan.plan_date,
+            "source": plan.source,
+            "explanation": plan.explanation,
+            "items": [self._schedule_item_context(item) for schedule in plan.schedules for item in schedule.items],
+        }
+
+    def _task_context(self, task: Task) -> dict:
+        return {
+            "id": task.id,
+            "title": task.title,
+            "deadline": task.deadline,
+            "priority": task.priority,
+            "estimated_duration": task.estimated_duration,
+            "tags": task.tags,
+        }
+
+    def _schedule_item_context(self, item: ScheduleItem) -> dict:
+        return {
+            "id": item.id,
+            "label": item.label,
+            "start_time": item.start_time,
+            "end_time": item.end_time,
+            "status": item.status,
+            "task_id": item.task_id,
+        }
 
     def _build_explanation(
         self,

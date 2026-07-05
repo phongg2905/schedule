@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from pathlib import Path
 from uuid import uuid4
 import sys
@@ -23,6 +24,13 @@ def _credentials() -> dict[str, str]:
 
 def test_daily_progress_ai_adjustment_and_insight_flow() -> None:
     with TestClient(app) as client:
+        today = date.today()
+        plan_date = today.isoformat()
+        first_deadline = today.isoformat()
+        second_deadline = (today + timedelta(days=1)).isoformat()
+        delayed_deadline = (today + timedelta(days=2)).isoformat()
+        moved_deadline = (today + timedelta(days=3)).isoformat()
+
         credentials = _credentials()
         assert client.post("/api/v1/auth/register", json=credentials).status_code == 200
         assert client.post("/api/v1/auth/login", json={"email": credentials["email"], "password": credentials["password"]}).status_code == 200
@@ -49,7 +57,7 @@ def test_daily_progress_ai_adjustment_and_insight_flow() -> None:
                 "title": "Finish quarterly report",
                 "description": "Draft and review",
                 "estimated_duration": 60,
-                "deadline": "2026-07-01",
+                "deadline": first_deadline,
                 "priority": "urgent",
                 "tags": ["work"],
             },
@@ -60,7 +68,7 @@ def test_daily_progress_ai_adjustment_and_insight_flow() -> None:
                 "title": "Prepare standup notes",
                 "description": "Short update",
                 "estimated_duration": 30,
-                "deadline": "2026-07-02",
+                "deadline": second_deadline,
                 "priority": "normal",
                 "tags": ["work"],
             },
@@ -68,7 +76,7 @@ def test_daily_progress_ai_adjustment_and_insight_flow() -> None:
 
         generate_response = client.post(
             "/api/v1/daily-plans/generate",
-            json={"plan_date": "2026-07-01", "context_window_type": "rule_based_daily_plan", "trigger_source": "manual"},
+            json={"plan_date": plan_date, "context_window_type": "rule_based_daily_plan", "trigger_source": "manual"},
         )
         assert generate_response.status_code == 201
         plan = generate_response.json()
@@ -83,14 +91,14 @@ def test_daily_progress_ai_adjustment_and_insight_flow() -> None:
 
         delay_response = client.post(
             f"/api/v1/progress/tasks/{second_task['id']}/delay",
-            json={"new_deadline": "2026-07-03", "reason": "Need more time"},
+            json={"new_deadline": delayed_deadline, "reason": "Need more time"},
         )
         assert delay_response.status_code == 200
         assert delay_response.json()["task"]["status"] == "deferred"
 
         delay_after_complete_response = client.post(
             f"/api/v1/progress/tasks/{first_task['id']}/delay",
-            json={"new_deadline": "2026-07-04", "reason": "Should fail"},
+            json={"new_deadline": moved_deadline, "reason": "Should fail"},
         )
         assert delay_after_complete_response.status_code == 409
 

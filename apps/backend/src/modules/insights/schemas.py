@@ -10,4 +10,3 @@ class InsightResponse(BaseModel):
     pending_tasks: int
     top_focus: str = Field(default="")
     highlights: list[str] = Field(default_factory=list)
-

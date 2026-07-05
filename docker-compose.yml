@@ -1,15 +1,4 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ai_planner
-      POSTGRES_USER: ai_planner
-      POSTGRES_PASSWORD: ai_planner
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   redis:
     image: redis:7-alpine
     ports:
@@ -19,17 +8,13 @@ services:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql+psycopg://ai_planner:ai_planner@postgres:5432/ai_planner
       REDIS_URL: redis://redis:6379/0
-      JWT_SECRET: change-me-in-dev
-      JWT_REFRESH_SECRET: change-me-in-dev-refresh
-      OPENAI_API_KEY: ""
-      ENVIRONMENT: development
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
       - redis
 
   frontend:
@@ -42,6 +27,3 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-
-volumes:
-  postgres_data:

@@ -7,7 +7,10 @@ AI Planner is an AI companion for planning, schedule adjustment, behavior tracki
 - Phase 6.5: Hardening in progress
 - Phase 5 foundation is complete and runnable
 - Authentication, Task CRUD, Working Schedule & Preferences, Rule-based Daily Plan, AI Generate/Explain, Daily Progress, AI Adjustment, and Insight are implemented
+- Internationalization baseline is implemented with English and Vietnamese support
 - Product, UX, data, and architecture blueprints are the source of truth
+- Persistence uses managed PostgreSQL on Supabase
+- Schema changes are managed through Alembic migrations
 
 ## Product Positioning
 
@@ -36,3 +39,9 @@ AI Planner is an AI companion for planning, schedule adjustment, behavior tracki
 - Data first
 - Build for version 3, ship version 1
 - All major changes must be explained and documented
+
+## Database Setup
+
+- Use the Supabase direct connection for Alembic migrations
+- Apply schema changes with `cd apps/backend && alembic upgrade head`
+- The application runtime reads `DATABASE_URL` from the environment

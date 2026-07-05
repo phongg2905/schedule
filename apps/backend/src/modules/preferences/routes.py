@@ -2,8 +2,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.dependencies import db_session, get_user_from_access_token
-from src.modules.preferences.schemas import PreferencesResponse, PreferencesUpdateRequest
-from src.modules.preferences.service import PreferencesService
+from src.modules.preferences.schemas import (
+    LanguagePreferenceResponse,
+    LanguagePreferenceUpdateRequest,
+    PreferencesResponse,
+    PreferencesUpdateRequest,
+)
+from src.modules.preferences.service import LanguagePreferencesService, PreferencesService
 
 router = APIRouter()
 
@@ -20,6 +25,10 @@ def _serialize(preference) -> PreferencesResponse:
     )
 
 
+def _serialize_language(preference) -> LanguagePreferenceResponse:
+    return LanguagePreferenceResponse(language=preference.language)
+
+
 @router.get("")
 def get_preferences(user=Depends(get_user_from_access_token), db: Session = Depends(db_session)) -> PreferencesResponse:
     service = PreferencesService(db, user.id)
@@ -28,7 +37,11 @@ def get_preferences(user=Depends(get_user_from_access_token), db: Session = Depe
 
 
 @router.put("")
-def update_preferences(payload: PreferencesUpdateRequest, user=Depends(get_user_from_access_token), db: Session = Depends(db_session)) -> PreferencesResponse:
+def update_preferences(
+    payload: PreferencesUpdateRequest,
+    user=Depends(get_user_from_access_token),
+    db: Session = Depends(db_session),
+) -> PreferencesResponse:
     service = PreferencesService(db, user.id)
     preference = service.update(
         timezone=payload.timezone,
@@ -40,3 +53,21 @@ def update_preferences(payload: PreferencesUpdateRequest, user=Depends(get_user_
         focus_hours=payload.focus_hours,
     )
     return _serialize(preference)
+
+
+@router.get("/language")
+def get_language(user=Depends(get_user_from_access_token), db: Session = Depends(db_session)) -> LanguagePreferenceResponse:
+    service = LanguagePreferencesService(db, user.id)
+    preference = service.get()
+    return _serialize_language(preference)
+
+
+@router.put("/language")
+def update_language(
+    payload: LanguagePreferenceUpdateRequest,
+    user=Depends(get_user_from_access_token),
+    db: Session = Depends(db_session),
+) -> LanguagePreferenceResponse:
+    service = LanguagePreferencesService(db, user.id)
+    preference = service.update(language=payload.language)
+    return _serialize_language(preference)

@@ -20,7 +20,6 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_token(subject: str, secret: str, expires_delta: timedelta, token_type: str) -> str:
-    settings = get_settings()
     now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": subject,

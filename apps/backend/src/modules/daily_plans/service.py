@@ -42,7 +42,11 @@ class DailyPlanService:
 
         schedule = self.db.query(Schedule).filter(Schedule.user_id == self.user_id, Schedule.daily_plan_id == plan.id).one_or_none()
         if schedule is None:
-            schedule = Schedule(id=new_id(), user_id=self.user_id, daily_plan=plan, daily_plan_id=plan.id, schedule_date=plan_date, schedule_type="day", source="rule_based")
+            schedule = Schedule(
+                id=new_id(), user_id=self.user_id,
+                daily_plan_id=plan.id, schedule_date=plan_date,
+                schedule_type="day", source="rule_based",
+            )
         else:
             schedule.schedule_date = plan_date
             schedule.schedule_type = "day"
@@ -97,7 +101,16 @@ class DailyPlanService:
         return plan
 
     def _list_candidate_tasks(self) -> list[Task]:
-        tasks = self.db.query(Task).filter(Task.user_id == self.user_id, Task.deleted_at.is_(None), Task.status != "completed").all()
+        tasks = (
+            self.db.query(Task)
+            .filter(
+                Task.user_id == self.user_id,
+                Task.deleted_at.is_(None),
+                Task.status != "completed",
+                Task.task_type == "scheduled",
+            )
+            .all()
+        )
         return sorted(tasks, key=self._task_sort_key)
 
     def _task_sort_key(self, task: Task) -> tuple[int, str, int, datetime]:
@@ -188,7 +201,13 @@ class DailyPlanService:
     def _combine_datetime(self, plan_date: str, time_value: str) -> datetime:
         return datetime.strptime(f"{plan_date} {time_value}", "%Y-%m-%d %H:%M")
 
-    def _build_explanation(self, scheduled_items: list[ScheduleItem], overflow_tasks: list[Task], preference: UserSchedulePreference | None, day_off: bool) -> str:
+    def _build_explanation(
+        self,
+        scheduled_items: list[ScheduleItem],
+        overflow_tasks: list[Task],
+        preference: UserSchedulePreference | None,
+        day_off: bool,
+    ) -> str:
         if day_off:
             return "Today is configured as a day off, so no tasks were scheduled."
         work_start_time = preference.work_start_time if preference else "09:00"

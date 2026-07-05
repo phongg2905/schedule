@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-01 - Internationalization baseline added
+
+### Added
+
+- next-intl integrated for global English and Vietnamese UI support
+- reusable language switcher added with local guest persistence and authenticated server sync
+- backend preference model split to keep language separate from working schedule settings
+- AI context now carries preferred language and prompt instructions preserve JSON schema
+- frontend user-facing strings replaced with translation keys and locale-aware date formatting
+
 ## 2026-07-01 - Phase 6.5 hardening started
 
 ### Added
