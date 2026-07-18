@@ -38,3 +38,20 @@ class TaskResponse(BaseModel):
     status: str
     tags: list[str]
     completed_at: datetime | None
+
+
+class HistoryDayInfo(BaseModel):
+    date: str
+    total: int
+    completed: int
+    pending: int
+    tasks: list[TaskResponse]
+
+
+class HistoryResponse(BaseModel):
+    days: list[HistoryDayInfo]
+    from_date: str
+    to_date: str
+    total_tasks: int
+    total_completed: int
+    total_pending: int

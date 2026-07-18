@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import and_
@@ -16,6 +16,50 @@ class TaskService:
 
     def list(self) -> list[Task]:
         return self.db.query(Task).filter(Task.user_id == self.user_id, Task.deleted_at.is_(None)).order_by(Task.created_at.desc()).all()
+
+    def get_history(self, from_date: str, to_date: str) -> dict:
+        tasks = (
+            self.db.query(Task)
+            .filter(
+                Task.user_id == self.user_id,
+                Task.deleted_at.is_(None),
+                Task.deadline.isnot(None),
+                Task.deadline >= from_date,
+                Task.deadline <= to_date,
+            )
+            .order_by(Task.deadline.asc(), Task.start_time.asc().nullslast())
+            .all()
+        )
+
+        from src.modules.serializers import serialize_task
+
+        days_map: dict[str, dict] = {}
+        total_completed = 0
+        total_pending = 0
+
+        for task in tasks:
+            d = task.deadline
+            if d not in days_map:
+                days_map[d] = {"date": d, "total": 0, "completed": 0, "pending": 0, "tasks": []}
+            days_map[d]["total"] += 1
+            if task.status == "completed":
+                days_map[d]["completed"] += 1
+                total_completed += 1
+            else:
+                days_map[d]["pending"] += 1
+                total_pending += 1
+            days_map[d]["tasks"].append(serialize_task(task))
+
+        sorted_days = sorted(days_map.values(), key=lambda x: x["date"], reverse=True)
+
+        return {
+            "days": sorted_days,
+            "from_date": from_date,
+            "to_date": to_date,
+            "total_tasks": len(tasks),
+            "total_completed": total_completed,
+            "total_pending": total_pending,
+        }
 
     def create(
         self,
@@ -80,8 +124,7 @@ class TaskService:
         task_type = fields.get("task_type", task.task_type)
         self._validate_time_overlap(start_time, estimated_duration, task_type, exclude_task_id=task_id)
         for key, value in fields.items():
-            if value is not None:
-                setattr(task, key, value)
+            setattr(task, key, value)
         if "status" in fields and fields["status"] is not None:
             if task.status == "completed" and task.completed_at is None:
                 task.completed_at = datetime.now(UTC)

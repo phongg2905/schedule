@@ -42,6 +42,7 @@ AI Planner is an AI companion for planning, schedule adjustment, behavior tracki
 
 ## Database Setup
 
-- Use the Supabase direct connection for Alembic migrations
+- The project does not ship with a local database
+- Use the managed PostgreSQL connection from your deployment environment
 - Apply schema changes with `cd apps/backend && alembic upgrade head`
 - The application runtime reads `DATABASE_URL` from the environment

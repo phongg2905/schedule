@@ -413,6 +413,14 @@ body {
 }
 
 /* ===========================================
+   SAFE AREA (for notched mobile devices)
+   =========================================== */
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ===========================================
    ANIMATION UTILITY CLASSES
    =========================================== */
 

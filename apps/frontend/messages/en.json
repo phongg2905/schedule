@@ -33,6 +33,7 @@
     "home": "Home",
     "today": "Today",
     "tasks": "Tasks",
+    "history": "History",
     "settings": "Settings",
     "profile": "Profile",
     "login": "Login",
@@ -126,6 +127,35 @@
       "brandTitle": "Begin your",
       "brandSubtitle": "calm journey.",
       "brandDescription": "Create an account and let AI Planner help you organize your tasks, optimize your schedule, and achieve more with less stress."
+    }
+  },
+  "history": {
+    "eyebrow": "History",
+    "title": "Task History",
+    "description": "Browse your tasks from the past 30 days, grouped by week.",
+    "week": "Week of {date}",
+    "thisWeek": "This Week",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "completed": "Completed",
+    "pending": "Pending",
+    "stats": "{completed} done / {total} total",
+    "noTasks": "No tasks this week.",
+    "empty": {
+      "title": "No history yet",
+      "description": "Tasks you create will appear here grouped by week."
+    },
+    "yesterdayOverdue": {
+      "notice": "You did not finish these tasks yesterday.",
+      "title": "Yesterday's unfinished"
+    },
+    "editTask": {
+      "title": "Edit task",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "success": "Task updated successfully.",
+      "timeConflict": "This time conflicts with another scheduled task."
     }
   },
   "settings": {
@@ -230,6 +260,10 @@
       "today": "Today",
       "upcoming": "Upcoming",
       "completed": "Completed"
+    },
+    "overdue": {
+      "notice": "You did not finish these tasks yesterday.",
+      "itemNote": "Overdue task"
     },
     "empty": {
       "title": "No tasks yet",
@@ -359,7 +393,7 @@
     "aiAdjusting": "Adjusting...",
     "dailyPlan": "Daily Plan",
     "aiAdjustment": "Plan adjustment",
-    "aiExplanation": "AI Explanation",
+    "aiExplanation": "Explanation",
     "whyThisOrderTitle": "Why this order?",
     "aiAssistant": "AI Assistant",
     "adjustTitle": "Adjust your plan",

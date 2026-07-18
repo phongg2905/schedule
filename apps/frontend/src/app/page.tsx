@@ -15,6 +15,7 @@ import { apiFetch } from "@/services/api";
 import { fetchMe } from "@/services/auth";
 import { useAppIntl } from "@/providers/intl-provider";
 import { cn } from "@/lib/cn";
+import { formatDateKey } from "@/lib/date";
 import { sortByTime } from "@/lib/sort";
 import {
   FadeInUp,
@@ -226,8 +227,9 @@ export default function HomePage() {
   }
 
   // ── Dashboard (authenticated) ──
-  const todayTasks = sortByTime(tasks.filter((t) => t.deadline && t.deadline <= new Date().toISOString().slice(0, 10) && t.status !== "completed")).slice(0, 3);
-  const tomorrowDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const todayDate = formatDateKey();
+  const todayTasks = sortByTime(tasks.filter((t) => t.deadline === todayDate && t.status !== "completed")).slice(0, 3);
+  const tomorrowDate = formatDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const tomorrowTasks = sortByTime(tasks.filter((t) => t.deadline && t.deadline === tomorrowDate && t.status !== "completed")).slice(0, 3);
   const completionRate = insight && insight.total_tasks > 0 ? Math.round((insight.completed_tasks / insight.total_tasks) * 100) : 0;
 

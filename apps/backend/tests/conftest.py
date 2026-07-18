@@ -6,7 +6,7 @@ import pytest
 
 @pytest.fixture(scope="session", autouse=True)
 def configure_test_database() -> None:
-    os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
     os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
     os.environ.setdefault("JWT_SECRET", "test-secret")
     os.environ.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
