@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
-from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session, sessionmaker
 
 from src.core.config import get_settings
 from src.db.base import Base
@@ -16,11 +16,16 @@ def _create_engine(database_url: str):
         url = url.set(drivername="postgresql+psycopg")
     if "pgbouncer" in url.query:
         url = url.set(query={key: value for key, value in url.query.items() if key != "pgbouncer"})
-    engine_kwargs = {"future": True, "pool_pre_ping": True}
+    if url.drivername.startswith("postgresql"):
+        return create_engine(url.render_as_string(hide_password=False), future=True, pool_pre_ping=True)
     if url.drivername.startswith("sqlite"):
-        engine_kwargs["connect_args"] = {"check_same_thread": False}
-        engine_kwargs["poolclass"] = StaticPool
-    return create_engine(url.render_as_string(hide_password=False), **engine_kwargs)
+        return create_engine(
+            url.render_as_string(hide_password=False),
+            future=True,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    raise RuntimeError("Unsupported database driver. Configure PostgreSQL or SQLite via DATABASE_URL.")
 
 
 def get_engine():
@@ -48,5 +53,4 @@ def init_db() -> None:
     from src.db import models  # noqa: F401
 
     engine = get_engine()
-    if engine.dialect.name == "sqlite":
-        Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine)

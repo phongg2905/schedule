@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { getErrorMessage } from "@/lib/api-error";
 import { cn } from "@/lib/cn";
+import { formatDateKey } from "@/lib/date";
 import { apiFetch } from "@/services/api";
 import { fetchMe } from "@/services/auth";
 import { TimePicker } from "@/components/ui/time-picker";
@@ -90,15 +91,15 @@ export default function CreateTaskPage() {
   function getDateForOption(option: string): string {
     const today = new Date();
     switch (option) {
-      case "today": return today.toISOString().slice(0, 10);
-      case "tomorrow": return new Date(today.getTime() + 86400000).toISOString().slice(0, 10);
+      case "today": return formatDateKey(today);
+      case "tomorrow": return formatDateKey(new Date(today.getTime() + 86400000));
       case "weekend": {
         const daysUntilWeekend = (6 - today.getDay() + 7) % 7 || 7;
-        return new Date(today.getTime() + daysUntilWeekend * 86400000).toISOString().slice(0, 10);
+        return formatDateKey(new Date(today.getTime() + daysUntilWeekend * 86400000));
       }
       case "nextWeek": {
         const daysUntilNextWeek = (8 - today.getDay()) % 7 || 7;
-        return new Date(today.getTime() + daysUntilNextWeek * 86400000).toISOString().slice(0, 10);
+        return formatDateKey(new Date(today.getTime() + daysUntilNextWeek * 86400000));
       }
       default: return "";
     }

@@ -16,6 +16,7 @@ import { useAppIntl } from "@/providers/intl-provider";
 import { apiFetch } from "@/services/api";
 import { fetchMe } from "@/services/auth";
 import { cn } from "@/lib/cn";
+import { formatDateKey } from "@/lib/date";
 import { sortByTime } from "@/lib/sort";
 import { FadeIn, FadeInDown } from "@/lib/motion";
 
@@ -63,6 +64,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("today");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const weekDays = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
@@ -79,7 +81,7 @@ export default function TasksPage() {
   }
 
   function isToday(dateStr: string): boolean {
-    return dateStr === new Date().toISOString().slice(0, 10);
+    return dateStr === formatDateKey();
   }
 
   async function load() {
@@ -99,12 +101,14 @@ export default function TasksPage() {
       : true
   );
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = formatDateKey();
 
-  const todayTasks = sortByTime(filteredTasks.filter((t) => t.deadline === todayStr || (t.deadline && t.deadline <= todayStr && t.status !== "completed")));
-  const completedTasks = sortByTime(filteredTasks.filter((t) => t.status === "completed"));
+  const todayTasks = sortByTime(filteredTasks.filter((t) => t.deadline === todayStr && t.status !== "completed"));
+  const completedTasks = filteredTasks
+    .filter((t) => t.status === "completed" && t.completed_at && formatDateKey(new Date(t.completed_at)) === todayStr)
+    .sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? ""));
   const upcomingTasks = sortByTime(filteredTasks.filter((t) => t.deadline && t.deadline > todayStr && t.status !== "completed"));
-  const overdueTasks = sortByTime(filteredTasks.filter((t) => t.deadline && t.deadline < todayStr && t.status !== "completed" && t.deadline !== todayStr));
+  const overdueTasks = sortByTime(filteredTasks.filter((t) => t.deadline && t.deadline < todayStr && t.status !== "completed"));
 
   const weekDates = getWeekDates();
 
@@ -148,24 +152,35 @@ export default function TasksPage() {
         </div>
 
         {/* Tabs & Search */}
-        <motion.div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <div className="flex gap-1 rounded-soft border border-border-light bg-white/60 p-1 overflow-x-auto">
-            {(["today", "week", "month"] as const).map((tab) => (
-              <motion.button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "rounded-[10px] px-4 py-2 text-sm font-medium transition-all duration-200",
-                  activeTab === tab ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-700"
-                )}
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                {tTasks(`tabs.${tab}`)}
-              </motion.button>
-            ))}
+        <motion.div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 rounded-soft border border-border-light bg-white/60 p-1 overflow-x-auto flex-1 sm:flex-none">
+              {(["today", "week", "month"] as const).map((tab) => (
+                <motion.button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    "rounded-[10px] px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap",
+                    activeTab === tab ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-700"
+                  )}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  {tTasks(`tabs.${tab}`)}
+                </motion.button>
+              ))}
+            </div>
+            {/* Mobile search toggle */}
+            <button
+              onClick={() => setShowMobileSearch(!showMobileSearch)}
+              className="sm:hidden flex h-9 w-9 items-center justify-center rounded-[10px] text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+              </svg>
+            </button>
           </div>
-          <div className="relative w-full md:w-64">
+          <div className={cn("relative w-full sm:w-64", !showMobileSearch && "hidden sm:block")}>
             <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
             </svg>
@@ -183,9 +198,12 @@ export default function TasksPage() {
                     <h2 className="font-display text-lg font-semibold text-coral-600">{tTasks("filter.urgent")}</h2>
                     <span className="rounded-full bg-coral-50 px-2.5 py-0.5 text-xs font-medium text-coral-500">{overdueTasks.length}</span>
                   </div>
+                  <div className="mb-3 rounded-[18px] border border-coral-100 bg-coral-50/60 px-4 py-3 text-sm text-coral-700">
+                    {tTasks("overdue.notice")}
+                  </div>
                   <div className="grid gap-2">
                     {overdueTasks.map((task, i) => (
-                      <TaskCard key={task.id} task={task} formatDate={formatDate} delay={i * 0.05} overdue />
+                      <TaskCard key={task.id} task={task} formatDate={formatDate} delay={i * 0.05} overdue compact />
                     ))}
                   </div>
                 </section>
@@ -255,10 +273,10 @@ export default function TasksPage() {
           <AnimatePresence mode="wait">
             <motion.div key="week-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               <Card variant="glass" className="overflow-hidden">
-                <div className="overflow-x-auto pb-2 md:pb-0">
-                <div className="grid min-h-[400px] min-w-[700px] grid-cols-7 divide-x divide-border-light md:min-w-0">
+                <div className="overflow-x-auto pb-2 md:pb-0 -mx-1 sm:mx-0">
+                <div className="grid min-h-[350px] min-w-[600px] grid-cols-7 divide-x divide-border-light md:min-w-0">
                   {weekDates.map((date, idx) => {
-                    const dateStr = date.toISOString().slice(0, 10);
+                    const dateStr = formatDateKey(date);
                     const dayTasks = sortByTime(filteredTasks.filter((t) => t.deadline === dateStr));
                     const dayName = weekDays[date.getDay()];
                     const isTodayDate = isToday(dateStr);
@@ -345,9 +363,10 @@ type TaskCardProps = {
   delay?: number;
   overdue?: boolean;
   completed?: boolean;
+  compact?: boolean;
 };
 
-function TaskCard({ task, formatDate, delay = 0, overdue = false, completed = false }: Readonly<TaskCardProps>) {
+function TaskCard({ task, formatDate, delay = 0, overdue = false, completed = false, compact = false }: Readonly<TaskCardProps>) {
   const tTasks = useTranslations("tasks");
   const priorityInfo = task.priority ? priorityBadge[task.priority] : null;
   const statusInfo = statusBadge[task.status];
@@ -359,6 +378,7 @@ function TaskCard({ task, formatDate, delay = 0, overdue = false, completed = fa
       transition={{ delay, duration: 0.3, ease: easeOut }}
       className={cn(
         "group relative overflow-hidden rounded-[16px] border border-border-light bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-card-hover",
+        compact && "p-3 sm:p-4",
         overdue && "border-coral-100 bg-coral-50/20",
         completed && "opacity-60"
       )}
@@ -368,20 +388,24 @@ function TaskCard({ task, formatDate, delay = 0, overdue = false, completed = fa
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className={cn("font-display text-base font-semibold text-neutral-900 truncate", completed && "line-through")}>{task.title}</h3>
+            <h3 className={cn("font-display text-base font-semibold text-neutral-900 truncate", compact && "text-[15px]", completed && "line-through")}>{task.title}</h3>
           </div>
-          {task.description && <p className="mt-1 text-sm text-neutral-500 line-clamp-1">{task.description}</p>}
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-400">
-            {task.start_time && <span className="inline-flex items-center gap-1"><svg viewBox="0 0 24 24" className="h-3 w-3 fill-none stroke-current stroke-[1.8]"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>{task.start_time}</span>}
-            {task.deadline && <span className="inline-flex items-center gap-1"><svg viewBox="0 0 24 24" className="h-3 w-3 fill-none stroke-current stroke-[1.8]"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>{formatDate(task.deadline)}</span>}
-            {task.estimated_duration && <span className="inline-flex items-center gap-1"><svg viewBox="0 0 24 24" className="h-3 w-3 fill-none stroke-current stroke-[1.8]"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>{Math.floor(task.estimated_duration / 60)}h {task.estimated_duration % 60}m</span>}
+          {!compact && task.description && <p className="mt-1 text-sm text-neutral-500 line-clamp-1">{task.description}</p>}
+          {!compact && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-400">
+              {task.start_time && <span className="inline-flex items-center gap-1"><svg viewBox="0 0 24 24" className="h-3 w-3 fill-none stroke-current stroke-[1.8]"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>{task.start_time}</span>}
+              {task.deadline && <span className="inline-flex items-center gap-1"><svg viewBox="0 0 24 24" className="h-3 w-3 fill-none stroke-current stroke-[1.8]"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>{formatDate(task.deadline)}</span>}
+              {task.estimated_duration && <span className="inline-flex items-center gap-1"><svg viewBox="0 0 24 24" className="h-3 w-3 fill-none stroke-current stroke-[1.8]"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>{Math.floor(task.estimated_duration / 60)}h {task.estimated_duration % 60}m</span>}
+            </div>
+          )}
+        </div>
+        {!compact ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {task.task_type === "flexible" && <Badge variant="lavender" size="sm">{tTasks("taskType.flexible")}</Badge>}
+            {priorityInfo && !completed && <Badge variant={priorityInfo.variant} size="sm">{tTasks(`priority.${task.priority}`)}</Badge>}
+            {statusInfo && <Badge variant={statusInfo.variant} size="sm" dot>{tTasks(`status.${task.status}`)}</Badge>}
           </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {task.task_type === "flexible" && <Badge variant="lavender" size="sm">{tTasks("taskType.flexible")}</Badge>}
-          {priorityInfo && !completed && <Badge variant={priorityInfo.variant} size="sm">{tTasks(`priority.${task.priority}`)}</Badge>}
-          {statusInfo && <Badge variant={statusInfo.variant} size="sm" dot>{tTasks(`status.${task.status}`)}</Badge>}
-        </div>
+        ) : null}
       </div>
     </motion.div>
   );

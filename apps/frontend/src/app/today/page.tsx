@@ -18,6 +18,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { getErrorMessage } from "@/lib/api-error";
 import { cn } from "@/lib/cn";
 import { useAppIntl } from "@/providers/intl-provider";
+import { formatDateKey } from "@/lib/date";
 import { apiFetch } from "@/services/api";
 import { fetchMe } from "@/services/auth";
 import {
@@ -137,7 +138,7 @@ export default function TodayPage() {
   async function generatePlan() {
     setGenerating(true); setBusyAction("generate"); setError(null);
     try {
-      const planDate = new Date().toISOString().slice(0, 10);
+      const planDate = formatDateKey();
       await apiFetch<DailyPlan>("/daily-plans/generate", { method: "POST", body: JSON.stringify({ plan_date: planDate, context_window_type: "rule_based_daily_plan", trigger_source: "manual" }) });
       await refreshState();
     } catch (err) { setError(getErrorMessage(err, tErrors)); }
@@ -147,7 +148,7 @@ export default function TodayPage() {
   async function generateAiPlan() {
     setAiGenerating(true); setBusyAction("ai-generate"); setError(null);
     try {
-      const planDate = new Date().toISOString().slice(0, 10);
+      const planDate = formatDateKey();
       const generated = await apiFetch<DailyPlan>("/ai/generate-daily-plan", { method: "POST", body: JSON.stringify({ plan_date: planDate, context_window_type: "ai_generation", trigger_source: "manual" }) });
       setPlan(generated); setAiExplanation(generated.explanation ?? null);
       await refreshState();
@@ -179,7 +180,7 @@ export default function TodayPage() {
   async function progressTask(action: "complete" | "skip" | "delay" | "move", taskId: string) {
     setBusyAction("progress"); setError(null);
     try {
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const tomorrow = formatDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
       const payload = action === "delay" ? { new_deadline: tomorrow, reason: "Deferred from today view" } : action === "move" ? { target_date: tomorrow, reason: "Moved from today view" } : { reason: "Updated from today view" };
       await apiFetch(`/progress/tasks/${taskId}/${action}`, { method: "POST", body: JSON.stringify(payload) });
       await refreshState();
@@ -316,10 +317,10 @@ export default function TodayPage() {
                         </div>
                         {item.task_id ? (
                           <div className="flex shrink-0 flex-wrap gap-1.5">
-                            <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => progressTask("complete", item.task_id!)} disabled={busyAction === "progress"} className="rounded-pill bg-mint-50 px-3 py-1.5 text-xs font-medium text-mint-600 transition-colors hover:bg-mint-100 disabled:opacity-50">{tToday("complete")}</motion.button>
-                            <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => progressTask("delay", item.task_id!)} disabled={busyAction === "progress"} className="rounded-pill bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:opacity-50">{tToday("delay")}</motion.button>
-                            <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => progressTask("skip", item.task_id!)} disabled={busyAction === "progress"} className="rounded-pill bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:opacity-50">{tToday("skip")}</motion.button>
-                            <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => progressTask("move", item.task_id!)} disabled={busyAction === "progress"} className="rounded-pill bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:opacity-50">{tToday("move")}</motion.button>
+                            <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => progressTask("complete", item.task_id!)} disabled={busyAction === "progress"} className="rounded-pill bg-mint-50 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium text-mint-600 transition-colors hover:bg-mint-100 disabled:opacity-50">{tToday("complete")}</motion.button>
+                            <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => progressTask("delay", item.task_id!)} disabled={busyAction === "progress"} className="rounded-pill bg-neutral-50 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:opacity-50">{tToday("delay")}</motion.button>
+                            <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => progressTask("skip", item.task_id!)} disabled={busyAction === "progress"} className="rounded-pill bg-neutral-50 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:opacity-50">{tToday("skip")}</motion.button>
+                            <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => progressTask("move", item.task_id!)} disabled={busyAction === "progress"} className="rounded-pill bg-neutral-50 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:opacity-50">{tToday("move")}</motion.button>
                           </div>
                         ) : null}
                       </div>

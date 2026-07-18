@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from src.dependencies import db_session, get_user_from_access_token
-from src.modules.tasks.schemas import TaskCreateRequest, TaskResponse, TaskUpdateRequest
+from src.modules.tasks.schemas import HistoryResponse, TaskCreateRequest, TaskResponse, TaskUpdateRequest
 from src.modules.tasks.service import TaskService
 from src.modules.serializers import serialize_task
 
@@ -13,6 +13,24 @@ router = APIRouter()
 def list_tasks(user=Depends(get_user_from_access_token), db: Session = Depends(db_session)) -> list[TaskResponse]:
     service = TaskService(db, user.id)
     return [serialize_task(task) for task in service.list()]
+
+
+@router.get("/history", response_model=HistoryResponse)
+def get_history(
+    from_date: str = Query(default=None, description="Start date (YYYY-MM-DD), defaults to 30 days ago from yesterday"),
+    to_date: str = Query(default=None, description="End date (YYYY-MM-DD), defaults to yesterday"),
+    user=Depends(get_user_from_access_token),
+    db: Session = Depends(db_session),
+) -> HistoryResponse:
+    from datetime import date, timedelta
+
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    if to_date is None:
+        to_date = yesterday
+    if from_date is None:
+        from_date = (date.today() - timedelta(days=30)).isoformat()
+    service = TaskService(db, user.id)
+    return HistoryResponse(**service.get_history(from_date, to_date))
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)

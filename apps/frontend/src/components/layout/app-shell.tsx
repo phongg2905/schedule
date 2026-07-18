@@ -12,7 +12,7 @@ import { apiFetch } from "@/services/api";
 import { useAppIntl } from "@/providers/intl-provider";
 
 type NavItemProps = {
-  href: "/" | "/today" | "/tasks" | "/settings" | "/profile";
+  href: "/" | "/today" | "/tasks" | "/history" | "/settings" | "/profile";
   label: string;
   isActive: boolean;
   icon: ReactNode;
@@ -37,6 +37,61 @@ function NavItem({ href, label, isActive, icon }: Readonly<NavItemProps>) {
     </Link>
   );
 }
+
+const mobileNavItems = [
+  {
+    href: "/" as const,
+    labelKey: "home" as const,
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.6]">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
+    href: "/today" as const,
+    labelKey: "today" as const,
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.6]">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 3" />
+      </svg>
+    ),
+  },
+  {
+    href: "/tasks" as const,
+    labelKey: "tasks" as const,
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.6]">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+        <rect x="9" y="3" width="6" height="4" rx="1" />
+        <path d="M9 14l2 2 4-4" />
+      </svg>
+    ),
+  },
+  {
+    href: "/history" as const,
+    labelKey: "history" as const,
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.6]">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 3" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" />
+      </svg>
+    ),
+  },
+  {
+    href: "/settings" as const,
+    labelKey: "settings" as const,
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.6]">
+        <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    ),
+  },
+];
 
 export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname();
@@ -69,13 +124,13 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
       <div className="bg-blob bg-blob-2" aria-hidden="true" />
       <div className="bg-blob bg-blob-3" aria-hidden="true" />
 
-      {/* Floating Navigation */}
-      <header className="sticky top-4 z-30 px-4 sm:px-6 lg:px-8">
+      {/* Floating Navigation — simplified on mobile, full on desktop */}
+      <header className="sticky top-0 z-30 sm:top-4 px-0 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <nav
             className={cn(
               "relative flex items-center justify-between",
-              "rounded-[20px] border border-white/80 bg-white/70 px-4 py-2.5 shadow-nav backdrop-blur-2xl",
+              "rounded-none sm:rounded-[20px] border-0 sm:border border-white/80 bg-white/70 px-4 py-2.5 shadow-nav backdrop-blur-2xl",
               "transition-all duration-300"
             )}
           >
@@ -84,7 +139,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
               href={isAuthenticated ? "/" : "/"}
               className="flex items-center gap-3"
             >
-              <span className="relative flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-coral shadow-[0_4px_12px_rgba(255,122,92,0.2)]">
+              <span className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-[12px] sm:rounded-[14px] bg-gradient-coral shadow-[0_4px_12px_rgba(255,122,92,0.2)]">
                 <svg
                   viewBox="0 0 24 24"
                   className="relative h-5 w-5 fill-white"
@@ -100,8 +155,8 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
               </div>
             </Link>
 
-            {/* Center Navigation */}
-            <div className="flex items-center gap-1">
+            {/* Center Navigation — hidden on mobile (use bottom nav instead) */}
+            <div className="hidden sm:flex items-center gap-1">
               {isAuthenticated ? (
                 <>
                   <NavItem
@@ -139,12 +194,25 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
                     }
                   />
                   <NavItem
+                    href="/history"
+                    label={tNav("history")}
+                    isActive={pathname === "/history"}
+                    icon={
+                      <svg viewBox="0 0 24 24" className="h-full w-full fill-none stroke-current stroke-[1.8]">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7v5l3 3" />
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" />
+                        <path d="M12 6v6l4 2" strokeDasharray="2 2" />
+                      </svg>
+                    }
+                  />
+                  <NavItem
                     href="/settings"
                     label={tNav("settings")}
                     isActive={pathname === "/settings"}
                     icon={
                       <svg viewBox="0 0 24 24" className="h-full w-full fill-none stroke-current stroke-[1.8]">
-                        <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" />
+                        <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 011-1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" />
                         <circle cx="12" cy="12" r="3" />
                       </svg>
                     }
@@ -154,11 +222,11 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
             </div>
 
             {/* Right side */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <LanguageSwitcher />
 
               {isAuthenticated ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <Link
                     href="/profile"
                     className={cn(
@@ -176,7 +244,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
                   </Link>
                   <button
                     onClick={logout}
-                    className="flex items-center gap-2 rounded-pill px-3 py-1.5 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+                    className="flex items-center gap-2 rounded-pill px-2 sm:px-3 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
                   >
                     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
                       <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
@@ -207,15 +275,54 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
         </div>
       </header>
 
-      {/* Page content with entrance animation */}
+      {/* Page content with padding bottom for mobile nav */}
       <motion.div
-        className="relative z-10 w-full"
+        className="relative z-10 w-full pb-16 sm:pb-0"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
       >
         {children}
       </motion.div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      {isAuthenticated ? (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border-light bg-white/90 backdrop-blur-2xl sm:hidden safe-area-bottom">
+          <div className="flex items-center justify-around px-2 py-1">
+            {mobileNavItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "relative flex flex-col items-center gap-0.5 rounded-[12px] px-3 py-1.5 transition-all duration-200",
+                    isActive
+                      ? "text-coral-500"
+                      : "text-neutral-400 hover:text-neutral-600"
+                  )}
+                >
+                  <span className={cn(
+                    "flex h-7 w-7 items-center justify-center",
+                    isActive && "drop-shadow-[0_1px_3px_rgba(255,122,92,0.3)]"
+                  )}>
+                    {item.icon}
+                  </span>
+                  <span className={cn(
+                    "text-[10px] font-medium leading-none",
+                    isActive ? "text-coral-500" : "text-neutral-400"
+                  )}>
+                    {tNav(item.labelKey)}
+                  </span>
+                  {isActive && (
+                    <span className="absolute -top-1 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-coral-400" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
     </div>
   );
 }

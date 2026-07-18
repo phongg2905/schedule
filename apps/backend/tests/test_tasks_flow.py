@@ -70,6 +70,18 @@ def test_task_crud_flow() -> None:
         assert updated_task["completed_at"] is not None
         assert updated_task["tags"] == ["work", "review", "done"]
 
+        # Verify nullable fields can be cleared
+        clear_response = client.patch(
+            f"/api/v1/tasks/{task_id}",
+            json={"description": None, "deadline": None, "priority": None},
+        )
+        assert clear_response.status_code == 200
+        cleared = clear_response.json()
+        assert cleared["description"] is None
+        assert cleared["deadline"] is None
+        assert cleared["priority"] is None
+        assert cleared["title"] == "Plan weekly review"  # other fields unchanged
+
         delete_response = client.delete(f"/api/v1/tasks/{task_id}")
         assert delete_response.status_code == 204
 

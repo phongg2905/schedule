@@ -33,6 +33,7 @@
     "home": "Trang chủ",
     "today": "Hôm nay",
     "tasks": "Công việc",
+    "history": "Lịch sử",
     "settings": "Cài đặt",
     "profile": "Hồ sơ",
     "login": "Đăng nhập",
@@ -125,6 +126,35 @@
       "brandTitle": "Bắt đầu",
       "brandSubtitle": "hành trình bình yên của bạn.",
       "brandDescription": "Tạo tài khoản và để AI Planner giúp bạn tổ chức công việc, tối ưu lịch trình và đạt được nhiều hơn với ít căng thẳng hơn."
+    }
+  },
+  "history": {
+    "eyebrow": "Lịch sử",
+    "title": "Lịch sử công việc",
+    "description": "Xem công việc trong 30 ngày qua, được nhóm theo tuần.",
+    "week": "Tuần {date}",
+    "thisWeek": "Tuần này",
+    "prevWeek": "Tuần trước",
+    "nextWeek": "Tuần sau",
+    "completed": "Đã hoàn thành",
+    "pending": "Chưa hoàn thành",
+    "stats": "{completed} xong / {total} tổng",
+    "noTasks": "Tuần này không có công việc.",
+    "empty": {
+      "title": "Chưa có lịch sử",
+      "description": "Công việc bạn tạo sẽ xuất hiện tại đây, được nhóm theo tuần."
+    },
+    "yesterdayOverdue": {
+      "notice": "Hôm qua bạn đã không hoàn thành những công việc này.",
+      "title": "Công việc hôm qua chưa xong"
+    },
+    "editTask": {
+      "title": "Sửa công việc",
+      "save": "Lưu thay đổi",
+      "saving": "Đang lưu...",
+      "cancel": "Hủy",
+      "success": "Cập nhật công việc thành công.",
+      "timeConflict": "Khung giờ này bị trùng với công việc khác."
     }
   },
   "settings": {
@@ -229,6 +259,10 @@
       "today": "Hôm nay",
       "upcoming": "Sắp tới",
       "completed": "Đã hoàn thành"
+    },
+    "overdue": {
+      "notice": "Hôm qua bạn đã không hoàn thành những nhiệm vụ này.",
+      "itemNote": "Nhiệm vụ quá hạn"
     },
     "empty": {
       "title": "Chưa có công việc nào",
@@ -358,7 +392,7 @@
     "aiAdjusting": "Đang điều chỉnh...",
     "dailyPlan": "Kế hoạch ngày",
     "aiAdjustment": "Điều chỉnh kế hoạch",
-    "aiExplanation": "Giải thích AI",
+    "aiExplanation": "Giải thích",
     "whyThisOrderTitle": "Tại sao thứ tự này?",
     "aiAssistant": "Trợ lý AI",
     "adjustTitle": "Điều chỉnh kế hoạch",
