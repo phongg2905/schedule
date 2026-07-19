@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -19,6 +19,7 @@ import { getErrorMessage } from "@/lib/api-error";
 import { cn } from "@/lib/cn";
 import { useAppIntl } from "@/providers/intl-provider";
 import { formatDateKey } from "@/lib/date";
+import { sortByTime } from "@/lib/sort";
 import { apiFetch } from "@/services/api";
 import { fetchMe } from "@/services/auth";
 import {
@@ -77,6 +78,15 @@ function formatTime(isoString: string, locale: string): string {
   return date.toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
+function addMinutesToTime(dateKey: string, timeValue: string, minutesToAdd: number): string {
+  const [hours, minutes] = timeValue.split(":").map((part) => Number(part));
+  const totalMinutes = hours * 60 + minutes + minutesToAdd;
+  const normalizedMinutes = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const nextHours = Math.floor(normalizedMinutes / 60);
+  const nextMinutes = normalizedMinutes % 60;
+  return `${dateKey}T${String(nextHours).padStart(2, "0")}:${String(nextMinutes).padStart(2, "0")}:00`;
+}
+
 function getGreetingKey(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "morning";
@@ -94,14 +104,13 @@ export default function TodayPage() {
   const router = useRouter();
   const tToday = useTranslations("today");
   const tErrors = useTranslations("errors");
-  const { formatDate, locale } = useAppIntl();
+  const { locale } = useAppIntl();
 
   const [plan, setPlan] = useState<DailyPlan | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [insight, setInsight] = useState<Insight | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [aiGenerating, setAiGenerating] = useState(false);
   const [aiExplaining, setAiExplaining] = useState(false);
   const [aiAdjusting, setAiAdjusting] = useState(false);
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -111,12 +120,10 @@ export default function TodayPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function refreshState() {
-    const [planData, taskData, insightData] = await Promise.all([
-      apiFetch<DailyPlan | null>("/daily-plans/today"),
+    const [taskData, insightData] = await Promise.all([
       apiFetch<Task[]>("/tasks"),
       apiFetch<Insight>("/insights/today"),
     ]);
-    setPlan(planData);
     setTasks(taskData);
     setInsight(insightData);
   }
@@ -135,25 +142,40 @@ export default function TodayPage() {
 
   useEffect(() => { void load(); }, []);
 
-  async function generatePlan() {
-    setGenerating(true); setBusyAction("generate"); setError(null);
-    try {
-      const planDate = formatDateKey();
-      await apiFetch<DailyPlan>("/daily-plans/generate", { method: "POST", body: JSON.stringify({ plan_date: planDate, context_window_type: "rule_based_daily_plan", trigger_source: "manual" }) });
-      await refreshState();
-    } catch (err) { setError(getErrorMessage(err, tErrors)); }
-    finally { setGenerating(false); setBusyAction(null); }
-  }
+  const todayStr = formatDateKey();
+  const todayPlan = useMemo(() => {
+    const items = sortByTime(
+      tasks
+        .filter((task) => task.deadline === todayStr)
+        .map((task) => {
+          const startValue = task.start_time ?? "00:00";
+          const duration = task.estimated_duration ?? 30;
+          return {
+            id: task.id,
+            label: task.title,
+            start_time: `${todayStr}T${startValue}:00`,
+            end_time: addMinutesToTime(todayStr, startValue, duration),
+            status: task.status === "completed" ? "completed" : "planned",
+            task_id: task.id,
+          };
+        })
+    );
 
-  async function generateAiPlan() {
-    setAiGenerating(true); setBusyAction("ai-generate"); setError(null);
-    try {
-      const planDate = formatDateKey();
-      const generated = await apiFetch<DailyPlan>("/ai/generate-daily-plan", { method: "POST", body: JSON.stringify({ plan_date: planDate, context_window_type: "ai_generation", trigger_source: "manual" }) });
-      setPlan(generated); setAiExplanation(generated.explanation ?? null);
-      await refreshState();
-    } catch (err) { setError(getErrorMessage(err, tErrors)); }
-    finally { setAiGenerating(false); setBusyAction(null); }
+    return {
+      id: `derived-${todayStr}`,
+      plan_date: todayStr,
+      status: items.length > 0 ? "derived" : "empty",
+      source: "tasks",
+      explanation: items.length > 0 ? "Today's schedule is derived from tasks." : null,
+      items,
+    };
+  }, [tasks, todayStr]);
+
+  async function generatePlan() {
+    setGenerating(true);
+    setBusyAction("generate");
+    setError(null);
+    router.push("/tasks?autoplan=1");
   }
 
   async function explainPlan() {
@@ -188,7 +210,7 @@ export default function TodayPage() {
     finally { setBusyAction(null); }
   }
 
-  const todayStr = new Date().toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const todayStrLabel = new Date().toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const completionRate = insight && insight.total_tasks > 0 ? Math.round((insight.completed_tasks / insight.total_tasks) * 100) : 0;
   const greetingKey = getGreetingKey();
   const motivationKey = getMotivationKey();
@@ -219,7 +241,7 @@ export default function TodayPage() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,122,92,0.06),transparent_40%),radial-gradient(circle_at_82%_20%,rgba(107,162,255,0.04),transparent_40%)]" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-3">
-              <motion.p className="section-label text-coral-500" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>{todayStr}</motion.p>
+              <motion.p className="section-label text-coral-500" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>{todayStrLabel}</motion.p>
               <motion.h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl lg:text-5xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 {tToday(`greeting.${greetingKey}`)}
               </motion.h1>
@@ -231,7 +253,7 @@ export default function TodayPage() {
                   <motion.span className="h-1.5 w-1.5 rounded-full bg-mint-400" animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 2, repeat: Infinity }} />
                   {tToday("aiReady")}
                 </span>
-                {plan ? <Badge variant="coral" size="sm" dot>{tToday("dailyPlan")}: {plan.status}</Badge> : null}
+                {todayPlan.items.length > 0 ? <Badge variant="coral" size="sm" dot>{tToday("dailyPlan")}: {todayPlan.items.length}</Badge> : null}
               </motion.div>
             </div>
             {insight ? (
@@ -256,7 +278,7 @@ export default function TodayPage() {
 
         {/* ===== QUICK METRICS ===== */}
         <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StaggerItem><StatCard label={tToday("planStatus")} value={plan ? plan.status.charAt(0).toUpperCase() + plan.status.slice(1) : tToday("readyForToday")} hint={plan ? formatDate(plan.plan_date) : tToday("generateToBegin")} accent="coral" icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" /><circle cx="12" cy="12" r="4" /></svg>} /></StaggerItem>
+          <StaggerItem><StatCard label={tToday("planStatus")} value={todayPlan.items.length.toString()} hint={todayPlan.items.length ? tToday("itemsScheduled", { count: todayPlan.items.length.toString() }) : tToday("generateToBegin")} accent="coral" icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" /><circle cx="12" cy="12" r="4" /></svg>} /></StaggerItem>
           <StaggerItem><StatCard label={tToday("completedTotal")} value={insight ? `${insight.completed_tasks}/${insight.total_tasks}` : "0/0"} hint={insight ? `${completionRate}%` : tToday("noDataYet")} accent="mint" icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M20 6L9 17l-5-5" /></svg>} /></StaggerItem>
           <StaggerItem><StatCard label={tToday("pendingTasks")} value={insight ? `${insight.pending_tasks}` : "0"} hint={insight ? insight.top_focus : tToday("waitingForData")} accent="sky" icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M12 3v18" /><path d="M7 8c0-2.8 2.2-5 5-5s5 2.2 5 5c0 4-5 7-5 7s-5-3-5-7Z" /></svg>} /></StaggerItem>
           <StaggerItem><StatCard label={tToday("tasksRemaining")} value={insight ? `${insight.total_tasks - insight.completed_tasks}` : "0"} hint={insight ? tToday("skippedDeferred", { skipped: insight.skipped_tasks.toString(), deferred: insight.deferred_tasks.toString() }) : tToday("noData")} accent="lavender" icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>} /></StaggerItem>
@@ -264,17 +286,14 @@ export default function TodayPage() {
 
         {/* ===== TIMELINE + AI (single column) ===== */}
         <Card variant="glass" className="p-6 sm:p-8">
-          <SectionHeader
+            <SectionHeader
             eyebrow={tToday("dailyPlan")}
-            title={plan ? (plan.items?.length ? tToday("itemsScheduled", { count: plan.items.length.toString() }) : tToday("noItems")) : tToday("readyForToday")}
-            description={plan?.explanation ?? tToday("noPlanDesc")}
+            title={todayPlan.items.length ? tToday("itemsScheduled", { count: todayPlan.items.length.toString() }) : tToday("noPlan")}
+            description={todayPlan.items.length ? tToday("readyForToday") : tToday("noPlanDesc")}
             actions={
               <div className="flex flex-wrap gap-2">
                 <Button onClick={generatePlan} disabled={generating || busyAction !== null} variant={plan ? "secondary" : "primary"} size="sm">
                   {generating ? tToday("generating") : plan ? tToday("regenerate") : tToday("generatePlan")}
-                </Button>
-                <Button onClick={generateAiPlan} disabled={aiGenerating || busyAction !== null} variant="soft" size="sm">
-                  {aiGenerating ? tToday("generating") : tToday("generateWithAI")}
                 </Button>
                 {plan ? <Button onClick={explainPlan} disabled={aiExplaining || busyAction !== null} variant="ghost" size="sm">{aiExplaining ? "..." : tToday("whyThisOrder")}</Button> : null}
               </div>
@@ -282,10 +301,10 @@ export default function TodayPage() {
           />
 
           {/* Timeline items */}
-          {plan?.items?.length ? (
+          {todayPlan.items.length ? (
             <div className="mt-6 space-y-1">
-              {plan.items.map((item, index) => {
-                const isLast = index === plan.items.length - 1;
+              {todayPlan.items.map((item, index) => {
+                const isLast = index === todayPlan.items.length - 1;
                 const itemStatus = item.status === "completed" ? "completed" : item.status === "in_progress" ? "active" : "pending";
                 return (
                   <motion.div
