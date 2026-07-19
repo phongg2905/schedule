@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
+import { Modal } from "@/components/ui/modal";
+import { getErrorMessage } from "@/lib/api-error";
 import { useAppIntl } from "@/providers/intl-provider";
 import { apiFetch } from "@/services/api";
 import { fetchMe } from "@/services/auth";
@@ -32,6 +34,22 @@ type Task = {
   status: string;
   tags: string[];
   completed_at: string | null;
+};
+
+type DraftPlan = {
+  id: string;
+  plan_date: string;
+  status: string;
+  source: string;
+  explanation: string | null;
+  items: Array<{
+    id: string;
+    label: string;
+    start_time: string;
+    end_time: string;
+    status: string;
+    task_id: string | null;
+  }>;
 };
 
 type Tab = "today" | "week" | "month";
@@ -57,7 +75,9 @@ const easeOut = [0.25, 0.1, 0.25, 1] as const;
 
 export default function TasksPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tTasks = useTranslations("tasks");
+  const tErrors = useTranslations("errors");
   const { formatDate } = useAppIntl();
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -65,6 +85,11 @@ export default function TasksPage() {
   const [activeTab, setActiveTab] = useState<Tab>("today");
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [draftPlan, setDraftPlan] = useState<DraftPlan | null>(null);
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftActionLoading, setDraftActionLoading] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
 
   const weekDays = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
@@ -84,16 +109,111 @@ export default function TasksPage() {
     return dateStr === formatDateKey();
   }
 
+  function formatDraftTime(isoValue: string): string {
+    return isoValue.slice(11, 16);
+  }
+
   async function load() {
     try {
       await fetchMe();
-      const data = await apiFetch<Task[]>("/tasks");
+      const [data, currentPlan] = await Promise.all([
+        apiFetch<Task[]>("/tasks"),
+        apiFetch<DraftPlan | null>("/daily-plans/today"),
+      ]);
       setTasks(data);
+      const isDraftPlan = Boolean(currentPlan && currentPlan.status === "draft");
+      setDraftPlan(isDraftPlan ? currentPlan : null);
+      setDraftOpen(isDraftPlan && searchParams.get("autoplan") === "1");
     } catch { router.push("/login"); }
     finally { setLoading(false); }
   }
 
   useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (searchParams.get("autoplan") !== "1") return;
+    if (draftPlan || draftLoading || draftActionLoading) return;
+    router.replace("/tasks");
+    void generateDraftPlan();
+  }, [loading, searchParams, draftPlan, draftLoading, draftActionLoading, router]);
+
+  async function generateDraftPlan() {
+    setDraftLoading(true);
+    setDraftActionLoading("generate");
+    setDraftError(null);
+    try {
+      const plan = await apiFetch<DraftPlan>("/daily-plans/draft", {
+        method: "POST",
+        body: JSON.stringify({
+          plan_date: formatDateKey(),
+          context_window_type: "task_plan_draft",
+          trigger_source: "manual",
+        }),
+      });
+      setDraftPlan(plan);
+      setDraftOpen(true);
+    } catch (error) {
+      setDraftError(getErrorMessage(error, tErrors));
+    } finally {
+      setDraftLoading(false);
+      setDraftActionLoading(null);
+    }
+  }
+
+  async function confirmDraftPlan() {
+    if (!draftPlan) return;
+    setDraftActionLoading("confirm");
+    setDraftError(null);
+    try {
+      await apiFetch(`/daily-plans/${draftPlan.id}/confirm`, { method: "POST" });
+      await load();
+      setDraftOpen(false);
+      setDraftPlan(null);
+    } catch (error) {
+      setDraftError(getErrorMessage(error, tErrors));
+    } finally {
+      setDraftActionLoading(null);
+    }
+  }
+
+  async function discardDraftPlan() {
+    if (!draftPlan) return;
+    setDraftActionLoading("discard");
+    setDraftError(null);
+    try {
+      await apiFetch(`/daily-plans/${draftPlan.id}`, { method: "DELETE" });
+      setDraftOpen(false);
+      setDraftPlan(null);
+    } catch (error) {
+      setDraftError(getErrorMessage(error, tErrors));
+    } finally {
+      setDraftActionLoading(null);
+    }
+  }
+
+  async function regenerateDraftPlan() {
+    setDraftLoading(true);
+    setDraftActionLoading("regenerate");
+    setDraftError(null);
+    try {
+      const plan = await apiFetch<DraftPlan>("/daily-plans/draft", {
+        method: "POST",
+        body: JSON.stringify({
+          plan_date: formatDateKey(),
+          context_window_type: "task_plan_draft",
+          trigger_source: "manual",
+        }),
+      });
+      setDraftPlan(plan);
+      setDraftOpen(true);
+    } catch (error) {
+      setDraftError(getErrorMessage(error, tErrors));
+    } finally {
+      setDraftLoading(false);
+      setDraftActionLoading(null);
+    }
+  }
 
   const filteredTasks = tasks.filter((t) =>
     searchQuery
@@ -140,14 +260,36 @@ export default function TasksPage() {
             </motion.p>
           </div>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-            <Link href="/tasks/new">
+            <div className="flex flex-wrap gap-2">
               <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}>
-                <Button variant="primary" size="md">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]"><path d="M12 5v14M5 12h14" /></svg>
-                  {tTasks("create.title")}
+                <Button
+                  variant="soft"
+                  size="md"
+                  onClick={() => {
+                    if (draftPlan) {
+                      setDraftOpen(true);
+                      return;
+                    }
+                    void generateDraftPlan();
+                  }}
+                  disabled={draftLoading || draftActionLoading !== null}
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
+                    <path d="M12 3v18M3 12h18" />
+                    <path d="M7 7l10 10" />
+                  </svg>
+                  {draftPlan ? "Review draft" : "Auto plan"}
                 </Button>
               </motion.div>
-            </Link>
+              <Link href="/tasks/new">
+                <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}>
+                  <Button variant="primary" size="md">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]"><path d="M12 5v14M5 12h14" /></svg>
+                    {tTasks("create.title")}
+                  </Button>
+                </motion.div>
+              </Link>
+            </div>
           </motion.div>
         </div>
 
@@ -351,6 +493,86 @@ export default function TasksPage() {
           </AnimatePresence>
         )}
       </motion.div>
+
+      <Modal
+        open={draftOpen}
+        onClose={() => setDraftOpen(false)}
+        title="Draft plan preview"
+        description={draftPlan ? `${draftPlan.plan_date} · ${draftPlan.items.length} item(s)` : "Generate a draft to review before saving to tasks."}
+        className="max-w-3xl"
+      >
+        <div className="space-y-5">
+          {draftError ? (
+            <div className="rounded-2xl border border-coral-100 bg-coral-50 px-4 py-3 text-sm text-coral-700">
+              {draftError}
+            </div>
+          ) : null}
+
+          {draftPlan ? (
+            <>
+              <div className="rounded-2xl border border-border-light bg-neutral-50/70 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Plan status</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge variant="sky" size="sm">{draftPlan.status}</Badge>
+                  <Badge variant="neutral" size="sm">{draftPlan.source}</Badge>
+                </div>
+                {draftPlan.explanation ? <p className="mt-3 text-sm leading-6 text-neutral-600">{draftPlan.explanation}</p> : null}
+              </div>
+
+              <div className="max-h-[48vh] space-y-2 overflow-y-auto pr-1">
+                {draftPlan.items.length > 0 ? draftPlan.items.map((item, index) => (
+                  <Card key={item.id} variant="ambient" className="border border-border-light p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-neutral-900">{index + 1}. {item.label}</p>
+                          <Badge variant="lavender" size="sm">{item.status}</Badge>
+                        </div>
+                        <p className="mt-1 text-sm text-neutral-500">
+                          {formatDraftTime(item.start_time)} - {formatDraftTime(item.end_time)}
+                        </p>
+                      </div>
+                      {item.task_id ? <Badge variant="neutral" size="sm">task linked</Badge> : null}
+                    </div>
+                  </Card>
+                )) : (
+                  <Card variant="ambient" className="border border-dashed border-border-light p-6 text-center">
+                    <p className="text-sm text-neutral-500">No items were generated for this date.</p>
+                  </Card>
+                )}
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2 border-t border-border-light pt-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => void discardDraftPlan()}
+                  disabled={draftActionLoading !== null}
+                >
+                  {draftActionLoading === "discard" ? "Discarding..." : "Discard"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => void regenerateDraftPlan()}
+                  disabled={draftLoading || draftActionLoading !== null}
+                >
+                  {draftLoading || draftActionLoading === "regenerate" ? "Regenerating..." : "Regenerate"}
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => void confirmDraftPlan()}
+                  disabled={draftActionLoading !== null}
+                >
+                  {draftActionLoading === "confirm" ? "Confirming..." : "Confirm"}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-border-light bg-neutral-50/70 px-4 py-6 text-sm text-neutral-500">
+              No draft is currently loaded.
+            </div>
+          )}
+        </div>
+      </Modal>
     </main>
   );
 }

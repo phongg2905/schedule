@@ -7,6 +7,12 @@ class DailyPlanGenerateRequest(BaseModel):
     trigger_source: str = "manual"
 
 
+class DailyPlanDraftRequest(BaseModel):
+    plan_date: str
+    context_window_type: str = "task_plan_draft"
+    trigger_source: str = "manual"
+
+
 class ScheduleItemResponse(BaseModel):
     id: str
     label: str

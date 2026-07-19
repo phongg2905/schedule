@@ -40,22 +40,6 @@ type Task = {
   completed_at: string | null;
 };
 
-type DailyPlan = {
-  id: string;
-  plan_date: string;
-  status: string;
-  source: string;
-  explanation?: string | null;
-  items: Array<{
-    id: string;
-    label: string;
-    start_time: string;
-    end_time: string;
-    status: string;
-    task_id: string | null;
-  }>;
-};
-
 type Insight = {
   summary_date: string;
   total_tasks: number;
@@ -96,7 +80,6 @@ export default function HomePage() {
 
   const [user, setUser] = useState<{ name: string } | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [plan, setPlan] = useState<DailyPlan | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -104,13 +87,11 @@ export default function HomePage() {
     try {
       const me = await fetchMe();
       setUser(me);
-      const [taskData, planData, insightData] = await Promise.all([
+      const [taskData, insightData] = await Promise.all([
         apiFetch<Task[]>("/tasks").catch(() => [] as Task[]),
-        apiFetch<DailyPlan | null>("/daily-plans/today").catch(() => null),
         apiFetch<Insight>("/insights/today").catch(() => null),
       ]);
       setTasks(taskData);
-      setPlan(planData);
       setInsight(insightData);
     } catch {
       // Not authenticated — show landing page
@@ -261,7 +242,7 @@ export default function HomePage() {
                   <motion.span className="h-1.5 w-1.5 rounded-full bg-mint-400" animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 2, repeat: Infinity }} />
                   {tHome("dashboard.aiReady")}
                 </span>
-                {plan ? <Badge variant="coral" size="sm" dot>{plan.status}</Badge> : null}
+                {todayTasks.length > 0 ? <Badge variant="coral" size="sm" dot>{tHome("dashboard.scheduledCount", { count: todayTasks.length })}</Badge> : null}
               </motion.div>
             </div>
             {insight ? (
@@ -312,15 +293,15 @@ export default function HomePage() {
                     <p className="section-label">{tHome("dashboard.todaysFocus")}</p>
                     <p className="mt-0.5 text-sm text-neutral-500">{tHome("dashboard.todaysFocusDesc")}</p>
                   </div>
-                  {plan ? (
-                    <Badge variant="mint" size="sm" dot>{tHome("dashboard.scheduledCount", { count: plan.items?.length || 0 })}</Badge>
+                  {todayTasks.length > 0 ? (
+                    <Badge variant="mint" size="sm" dot>{tHome("dashboard.scheduledCount", { count: todayTasks.length })}</Badge>
                   ) : null}
                 </div>
-                {plan?.items?.length ? (
+                {todayTasks.length > 0 ? (
                   <div className="space-y-2">
-                    {plan.items.slice(0, 3).map((item, i) => (
+                    {todayTasks.slice(0, 3).map((task, i) => (
                       <motion.div
-                        key={item.id}
+                        key={task.id}
                         className="flex items-center gap-3 rounded-soft border border-border-light bg-white/60 p-3 transition-all hover:border-neutral-300"
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -328,15 +309,18 @@ export default function HomePage() {
                       >
                         <div className={cn("h-2 w-2 rounded-full", i === 0 ? "bg-coral-400" : "bg-neutral-300")} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-neutral-900 truncate">{item.label}</p>
-                          <p className="text-xs text-neutral-500">{item.start_time?.slice(11, 16)} &mdash; {item.end_time?.slice(11, 16)}</p>
+                          <p className="text-sm font-medium text-neutral-900 truncate">{task.title}</p>
+                          <p className="text-xs text-neutral-500">
+                            {task.start_time ? task.start_time : tHome("dashboard.noUpcoming")}
+                            {task.estimated_duration ? ` · ${Math.floor(task.estimated_duration / 60)}h ${task.estimated_duration % 60}m` : ""}
+                          </p>
                         </div>
                         {i === 0 ? <span className="text-[10px] font-semibold uppercase tracking-wider text-coral-500">{tHome("dashboard.next")}</span> : null}
                       </motion.div>
                     ))}
-                    {plan.items.length > 3 ? (
+                    {todayTasks.length > 3 ? (
                       <Link href="/today" className="block text-center text-xs font-medium text-coral-500 hover:text-coral-600 pt-2">
-                        +{plan.items.length - 3} more items &rarr;
+                        +{todayTasks.length - 3} more items &rarr;
                       </Link>
                     ) : null}
                   </div>
