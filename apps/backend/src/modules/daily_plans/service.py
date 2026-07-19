@@ -17,6 +17,79 @@ class DailyPlanService:
         return self.db.query(DailyPlan).filter(DailyPlan.user_id == self.user_id, DailyPlan.plan_date == today).one_or_none()
 
     def generate(self, plan_date: str, context_window_type: str, trigger_source: str) -> DailyPlan:
+        return self._generate_internal(plan_date, context_window_type, trigger_source, draft=False)
+
+    def draft(self, plan_date: str, context_window_type: str, trigger_source: str) -> DailyPlan:
+        return self._generate_internal(plan_date, context_window_type, trigger_source, draft=True)
+
+    def confirm(self, plan_id: str) -> DailyPlan:
+        plan = self.db.get(DailyPlan, plan_id)
+        if not plan or plan.user_id != self.user_id:
+            from fastapi import HTTPException, status
+
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="DAILY_PLAN_NOT_FOUND")
+
+        for schedule in plan.schedules:
+            for item in schedule.items:
+                if not item.task_id:
+                    continue
+                task = self.db.get(Task, item.task_id)
+                if not task or task.user_id != self.user_id or task.deleted_at is not None:
+                    continue
+                item.status = "planned"
+                task.daily_plan_id = plan.id
+                if item.start_time:
+                    task.start_time = item.start_time[11:16]
+                task.deadline = plan.plan_date
+                task.task_type = "scheduled"
+                task.status = "planned"
+                self.db.add(task)
+                self.db.add(item)
+
+        plan.status = "confirmed"
+        self.db.add(
+            ActivityEvent(
+                user_id=self.user_id,
+                event_type="daily_plan_confirmed",
+                entity_type="daily_plan",
+                entity_id=plan.id,
+                source="manual",
+                payload={"plan_id": plan.id, "plan_date": plan.plan_date},
+            )
+        )
+        self.db.commit()
+        self.db.refresh(plan)
+        return plan
+
+    def discard(self, plan_id: str) -> None:
+        plan = self.db.get(DailyPlan, plan_id)
+        if not plan or plan.user_id != self.user_id:
+            from fastapi import HTTPException, status
+
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="DAILY_PLAN_NOT_FOUND")
+        for schedule in list(plan.schedules):
+            for item in list(schedule.items):
+                if item.task_id:
+                    task = self.db.get(Task, item.task_id)
+                    if task and task.user_id == self.user_id and task.deleted_at is None and task.daily_plan_id == plan.id:
+                        task.daily_plan_id = None
+                        self.db.add(task)
+                self.db.delete(item)
+            self.db.delete(schedule)
+        self.db.delete(plan)
+        self.db.add(
+            ActivityEvent(
+                user_id=self.user_id,
+                event_type="daily_plan_discarded",
+                entity_type="daily_plan",
+                entity_id=plan_id,
+                source="manual",
+                payload={"plan_id": plan_id, "plan_date": plan.plan_date},
+            )
+        )
+        self.db.commit()
+
+    def _generate_internal(self, plan_date: str, context_window_type: str, trigger_source: str, draft: bool) -> DailyPlan:
         existing_plan = self.db.query(DailyPlan).filter(DailyPlan.user_id == self.user_id, DailyPlan.plan_date == plan_date).one_or_none()
         preference = self.db.query(UserSchedulePreference).filter(UserSchedulePreference.user_id == self.user_id).one_or_none()
         tasks = self._list_candidate_tasks()
@@ -36,7 +109,17 @@ class DailyPlanService:
         self.db.add(snapshot)
 
         plan = existing_plan or DailyPlan(id=new_id(), user_id=self.user_id, plan_date=plan_date, status="draft", source="rule_based")
-        plan.status = "generated"
+        if existing_plan and existing_plan.schedules:
+            for schedule in list(existing_plan.schedules):
+                for item in list(schedule.items):
+                    if item.task_id:
+                        task = self.db.get(Task, item.task_id)
+                        if task and task.user_id == self.user_id and task.deleted_at is None and task.daily_plan_id == existing_plan.id:
+                            task.daily_plan_id = None
+                            self.db.add(task)
+                    self.db.delete(item)
+                self.db.delete(schedule)
+        plan.status = "draft" if draft else "generated"
         plan.source = "rule_based"
         plan.context_snapshot_id = snapshot.id
 
@@ -54,7 +137,15 @@ class DailyPlanService:
             for item in list(schedule.items):
                 self.db.delete(item)
 
-        scheduled_items, overflow_tasks, day_off = self._build_schedule_items(plan_date, tasks, preference, schedule.id, plan.id)
+        scheduled_items, overflow_tasks, day_off = self._build_schedule_items(
+            plan_date,
+            tasks,
+            preference,
+            schedule.id,
+            plan.id,
+            link_tasks=not draft,
+            item_status="draft" if draft else "planned",
+        )
         plan.explanation = self._build_explanation(scheduled_items, overflow_tasks, preference, day_off)
 
         self.db.add(plan)
@@ -65,7 +156,7 @@ class DailyPlanService:
         self.db.add(
             ActivityEvent(
                 user_id=self.user_id,
-                event_type="daily_plan_created" if existing_plan is None else "daily_plan_updated",
+                event_type="daily_plan_draft_created" if draft else "daily_plan_created" if existing_plan is None else "daily_plan_updated",
                 entity_type="daily_plan",
                 entity_id=plan.id,
                 source="system",
@@ -76,6 +167,7 @@ class DailyPlanService:
                     "scheduled_item_count": len(scheduled_items),
                     "overflow_task_count": len(overflow_tasks),
                     "day_off": day_off,
+                    "draft": draft,
                 },
             )
         )
@@ -146,6 +238,9 @@ class DailyPlanService:
         preference: UserSchedulePreference | None,
         schedule_id: str,
         plan_id: str,
+        *,
+        link_tasks: bool,
+        item_status: str,
     ) -> tuple[list[ScheduleItem], list[Task], bool]:
         preferences = self._preferences_payload(preference)
         if self._is_day_off(plan_date, preferences["day_offs"]):
@@ -185,11 +280,12 @@ class DailyPlanService:
                     start_time=current.strftime("%Y-%m-%dT%H:%M:%S"),
                     end_time=end_time.strftime("%Y-%m-%dT%H:%M:%S"),
                     label=task.title,
-                    status="planned",
+                    status=item_status,
                     source="rule_based",
                 )
             )
-            task.daily_plan_id = plan_id
+            if link_tasks:
+                task.daily_plan_id = plan_id
             current = end_time
 
         return scheduled_items, overflow_tasks, False
