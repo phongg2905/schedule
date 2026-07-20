@@ -29,6 +29,8 @@ if not database_url:
 url = make_url(database_url)
 if url.drivername == "postgresql":
     url = url.set(drivername="postgresql+psycopg")
+if "pgbouncer" in url.query:
+    url = url.set(query={key: value for key, value in url.query.items() if key != "pgbouncer"})
 
 config.set_main_option("sqlalchemy.url", url.render_as_string(hide_password=False))
 
@@ -54,6 +56,7 @@ def run_migrations_online() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"prepare_threshold": None},
     )
 
     with connectable.connect() as connection:

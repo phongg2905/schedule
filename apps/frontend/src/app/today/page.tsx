@@ -120,10 +120,12 @@ export default function TodayPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function refreshState() {
-    const [taskData, insightData] = await Promise.all([
+    const [planData, taskData, insightData] = await Promise.all([
+      apiFetch<DailyPlan | null>("/daily-plans/today"),
       apiFetch<Task[]>("/tasks"),
       apiFetch<Insight>("/insights/today"),
     ]);
+    setPlan(planData);
     setTasks(taskData);
     setInsight(insightData);
   }
@@ -144,6 +146,10 @@ export default function TodayPage() {
 
   const todayStr = formatDateKey();
   const todayPlan = useMemo(() => {
+    if (plan && plan.items.length > 0) {
+      return plan;
+    }
+
     const items = sortByTime(
       tasks
         .filter((task) => task.deadline === todayStr)
@@ -169,7 +175,7 @@ export default function TodayPage() {
       explanation: items.length > 0 ? "Today's schedule is derived from tasks." : null,
       items,
     };
-  }, [tasks, todayStr]);
+  }, [plan, tasks, todayStr]);
 
   async function generatePlan() {
     setGenerating(true);

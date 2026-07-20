@@ -10,22 +10,39 @@ _engine = None
 _session_factory = None
 
 
-def _create_engine(database_url: str):
+def _engine_kwargs(database_url: str):
     url = make_url(database_url)
     if url.drivername == "postgresql":
         url = url.set(drivername="postgresql+psycopg")
     if "pgbouncer" in url.query:
         url = url.set(query={key: value for key, value in url.query.items() if key != "pgbouncer"})
+
     if url.drivername.startswith("postgresql"):
-        return create_engine(url.render_as_string(hide_password=False), future=True, pool_pre_ping=True)
+        return {
+            "url": url.render_as_string(hide_password=False),
+            "kwargs": {
+                "future": True,
+                "pool_pre_ping": True,
+                "connect_args": {"prepare_threshold": None},
+            },
+        }
+
     if url.drivername.startswith("sqlite"):
-        return create_engine(
-            url.render_as_string(hide_password=False),
-            future=True,
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-        )
+        return {
+            "url": url.render_as_string(hide_password=False),
+            "kwargs": {
+                "future": True,
+                "connect_args": {"check_same_thread": False},
+                "poolclass": StaticPool,
+            },
+        }
+
     raise RuntimeError("Unsupported database driver. Configure PostgreSQL or SQLite via DATABASE_URL.")
+
+
+def _create_engine(database_url: str):
+    engine_config = _engine_kwargs(database_url)
+    return create_engine(engine_config["url"], **engine_config["kwargs"])
 
 
 def get_engine():
