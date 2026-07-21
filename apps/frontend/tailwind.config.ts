@@ -3,6 +3,14 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
+    screens: {
+      xs: "480px",
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
+    },
     extend: {
       colors: {
         // Background system - warm, soft
@@ -108,8 +116,8 @@ const config: Config = {
         "inner-glow": "inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -1px 0 rgba(36, 33, 30, 0.04)",
       },
       fontFamily: {
-        display: ["'SF Pro Display'", "'Inter'", "'Manrope'", "system-ui", "sans-serif"],
-        body: ["'Inter'", "'SF Pro Text'", "'Manrope'", "system-ui", "sans-serif"],
+        display: ["var(--font-manrope)", "var(--font-inter)", "'SF Pro Display'", "system-ui", "sans-serif"],
+        body: ["var(--font-inter)", "'SF Pro Text'", "var(--font-manrope)", "system-ui", "sans-serif"],
       },
       fontSize: {
         // Heading sizes

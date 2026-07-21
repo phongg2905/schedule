@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { motion, type Variants } from "framer-motion";
+import { motion, type Variants } from "@/lib/motion";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -99,8 +99,8 @@ export default function TaskDetailPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <FadeIn className="space-y-6">
+      <main className="mx-auto w-full max-w-4xl px-4 py-5 sm:px-6 lg:px-8">
+        <FadeIn className="space-y-5 sm:space-y-6">
           <LoadingState lines={1} variant="card" />
           <LoadingState lines={5} variant="card" />
         </FadeIn>
@@ -110,7 +110,7 @@ export default function TaskDetailPage() {
 
   if (!task) {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-4xl px-4 py-5 sm:px-6 lg:px-8">
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}>Task not found</motion.p>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Link href="/tasks"><Button variant="secondary" size="sm">Back to tasks</Button></Link>
@@ -123,8 +123,8 @@ export default function TaskDetailPage() {
   const statusInfo = statusConfig[task.status];
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-      <motion.div className="space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <main className="mx-auto w-full max-w-4xl px-4 py-5 sm:px-6 lg:px-8">
+      <motion.div className="space-y-5 sm:space-y-6 lg:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
         {/* Back link */}
         <FadeInUp>
           <Link href="/tasks" className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-700 transition-colors">
@@ -155,13 +155,13 @@ export default function TaskDetailPage() {
             </h1>
           </div>
           <motion.div
-            className="flex shrink-0 gap-2"
+            className="flex shrink-0 gap-2 w-full sm:w-auto"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
           >
-            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}>
-              <Button onClick={markComplete} disabled={completing || task.status === "completed"} variant={task.status === "completed" ? "ghost" : "primary"} size="sm">
+            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
+              <Button onClick={markComplete} disabled={completing || task.status === "completed"} variant={task.status === "completed" ? "ghost" : "primary"} size="sm" className="w-full sm:w-auto">
                 {task.status === "completed" ? "✓ Completed" : completing ? "..." : tTasks("detail.markComplete")}
               </Button>
             </motion.div>
@@ -185,7 +185,7 @@ export default function TaskDetailPage() {
         ) : null}
 
         {/* Metadata grid */}
-        <StaggerContainer className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StaggerContainer className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
           <StaggerItem>
             <MetaCard delay={0.25} icon={<svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>} label={tTasks("detail.type")} value={task.task_type === "flexible" ? tTasks("taskType.flexible") : tTasks("taskType.scheduled")} />
           </StaggerItem>

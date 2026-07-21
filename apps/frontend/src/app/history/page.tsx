@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/motion";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { apiFetch } from "@/services/api";
 import { fetchMe } from "@/services/auth";
 import { cn } from "@/lib/cn";
 import { formatDateKey } from "@/lib/date";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { FadeIn, FadeInUp } from "@/lib/motion";
 
 // ── Types ──
@@ -229,8 +230,8 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <FadeIn className="space-y-6">
+      <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
+        <FadeIn className="space-y-5 sm:space-y-6">
           <LoadingState lines={1} variant="card" />
           <LoadingState lines={4} variant="card" />
         </FadeIn>
@@ -242,8 +243,8 @@ export default function HistoryPage() {
 
   if (!history || history.days.length === 0) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <motion.div className="space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+      <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
+        <motion.div className="space-y-5 sm:space-y-6 lg:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
           <FadeInUp>
             <p className="section-label text-coral-500">{tHistory("eyebrow")}</p>
             <h1 className="page-title mt-1">{tHistory("title")}</h1>
@@ -256,8 +257,9 @@ export default function HistoryPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-      <motion.div className="space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
+      <PullToRefresh onRefresh={load}>
+      <motion.div className="space-y-5 sm:space-y-6 lg:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
 
         {/* ===== HEADER ===== */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -648,6 +650,7 @@ export default function HistoryPage() {
           </motion.div>
         )}
       </motion.div>
+      </PullToRefresh>
     </main>
   );
 }

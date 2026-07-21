@@ -52,10 +52,10 @@ function HeroIllustration() {
         <Image
           alt=""
           aria-hidden="true"
-          className="object-cover"
+          className="object-contain"
           fill
           priority
-          sizes="(max-width: 1024px) 100vw, 640px"
+          sizes="(max-width: 1024px) 100vw, 450px"
           src="/illustrations/hourglass-hero.png"
         />
       </div>

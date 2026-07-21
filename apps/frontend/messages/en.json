@@ -259,6 +259,7 @@
       "urgent": "Urgent",
       "today": "Today",
       "upcoming": "Upcoming",
+      "tomorrow": "Tomorrow",
       "completed": "Completed"
     },
     "overdue": {

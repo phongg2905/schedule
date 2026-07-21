@@ -4,7 +4,7 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/motion";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -141,8 +141,8 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <FadeIn className="space-y-6">
+      <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
+        <FadeIn className="space-y-5 sm:space-y-6">
           <LoadingState lines={1} variant="card" />
           <LoadingState lines={3} variant="card" />
         </FadeIn>
@@ -151,8 +151,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-      <motion.div className="space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
+      <motion.div className="space-y-5 sm:space-y-6 lg:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
         {/* Header */}
         <div className="space-y-2">
           <FadeInDown>
@@ -174,7 +174,7 @@ export default function SettingsPage() {
             title={tSettings("language.title")}
             description={tSettings("language.description")}
           >
-            <div className="max-w-[200px]">
+            <div className="w-full max-w-[200px]">
               <LanguageSwitcher />
             </div>
           </SectionCard>
@@ -223,44 +223,44 @@ export default function SettingsPage() {
             title={tSettings("schedule.title")}
             description={tSettings("schedule.description")}
           >
-            <form onSubmit={submit} className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
+            <form onSubmit={submit} className="space-y-4 sm:space-y-5">
+              <div className="grid gap-3 sm:gap-5 grid-cols-1 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-600">{tSettings("schedule.timezone")}</label>
+                  <label className="text-[11px] sm:text-xs font-medium text-neutral-600">{tSettings("schedule.timezone")}</label>
                   <Input value={timezone} onChange={(event) => setTimezone(event.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-600">{tSettings("schedule.dayOffs")}</label>
+                  <label className="text-[11px] sm:text-xs font-medium text-neutral-600">{tSettings("schedule.dayOffs")}</label>
                   <Input value={dayOffs} onChange={(event) => setDayOffs(event.target.value)} placeholder={tSettings("schedule.dayOffsPlaceholder")} />
                 </div>
               </div>
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-3 sm:gap-5 grid-cols-1 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-600">{tSettings("schedule.workStart")}</label>
+                  <label className="text-[11px] sm:text-xs font-medium text-neutral-600">{tSettings("schedule.workStart")}</label>
                   <Input type="time" value={workStartTime} onChange={(event) => setWorkStartTime(event.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-600">{tSettings("schedule.workEnd")}</label>
+                  <label className="text-[11px] sm:text-xs font-medium text-neutral-600">{tSettings("schedule.workEnd")}</label>
                   <Input type="time" value={workEndTime} onChange={(event) => setWorkEndTime(event.target.value)} />
                 </div>
               </div>
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-3 sm:gap-5 grid-cols-1 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-600">{tSettings("schedule.lunchStart")}</label>
+                  <label className="text-[11px] sm:text-xs font-medium text-neutral-600">{tSettings("schedule.lunchStart")}</label>
                   <Input type="time" value={lunchStartTime} onChange={(event) => setLunchStartTime(event.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-600">{tSettings("schedule.lunchEnd")}</label>
+                  <label className="text-[11px] sm:text-xs font-medium text-neutral-600">{tSettings("schedule.lunchEnd")}</label>
                   <Input type="time" value={lunchEndTime} onChange={(event) => setLunchEndTime(event.target.value)} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-600">{tSettings("schedule.focusHours")}</label>
+                <label className="text-[11px] sm:text-xs font-medium text-neutral-600">{tSettings("schedule.focusHours")}</label>
                 <Input value={focusHours} onChange={(event) => setFocusHours(event.target.value)} placeholder={tSettings("schedule.focusHoursPlaceholder")} />
               </div>
               <AnimatePresence>
                 {message ? (
-                  <motion.div className={cn("rounded-soft border px-4 py-3 text-sm", messageVariant === "success" ? "border-mint-100 bg-mint-50 text-mint-700" : "border-coral-100 bg-coral-50 text-coral-700")} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                  <motion.div className={cn("rounded-soft border px-3 sm:px-4 py-3 text-xs sm:text-sm", messageVariant === "success" ? "border-mint-100 bg-mint-50 text-mint-700" : "border-coral-100 bg-coral-50 text-coral-700")} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                     {message}
                   </motion.div>
                 ) : null}

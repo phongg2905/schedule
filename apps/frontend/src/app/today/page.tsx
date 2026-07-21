@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/motion";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +22,8 @@ import { formatDateKey } from "@/lib/date";
 import { sortByTime } from "@/lib/sort";
 import { apiFetch } from "@/services/api";
 import { fetchMe } from "@/services/auth";
+import { SwipeableCard, swipeActions } from "@/components/ui/swipeable-card";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import {
   FadeIn,
   FadeInUp,
@@ -216,6 +218,10 @@ export default function TodayPage() {
     finally { setBusyAction(null); }
   }
 
+  async function refreshPage() {
+    await refreshState();
+  }
+
   const todayStrLabel = new Date().toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const completionRate = insight && insight.total_tasks > 0 ? Math.round((insight.completed_tasks / insight.total_tasks) * 100) : 0;
   const greetingKey = getGreetingKey();
@@ -223,10 +229,10 @@ export default function TodayPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <FadeIn className="space-y-6">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <FadeIn className="space-y-5 sm:space-y-6">
           <LoadingState lines={2} variant="card" />
-          <div className="grid gap-4 md:grid-cols-3"><LoadingState lines={1} variant="card" /><LoadingState lines={1} variant="card" /><LoadingState lines={1} variant="card" /></div>
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"><LoadingState lines={1} variant="card" /><LoadingState lines={1} variant="card" /><LoadingState lines={1} variant="card" /><LoadingState lines={1} variant="card" /></div>
           <LoadingState lines={4} variant="card" />
         </FadeIn>
       </main>
@@ -234,28 +240,29 @@ export default function TodayPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <motion.div className="space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+      <PullToRefresh onRefresh={refreshPage}>
+      <motion.div className="space-y-5 sm:space-y-6 lg:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
 
         {/* ===== HERO ===== */}
         <motion.section
-          className="relative overflow-hidden rounded-[32px] border border-border-light bg-gradient-to-br from-bg-warm via-white to-bg-soft px-6 py-8 shadow-card sm:px-10 sm:py-10"
+          className="relative overflow-hidden rounded-[20px] sm:rounded-[24px] lg:rounded-[32px] border border-border-light bg-gradient-to-br from-bg-warm via-white to-bg-soft px-5 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-10 shadow-card"
           initial={{ opacity: 0, y: 20, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,122,92,0.06),transparent_40%),radial-gradient(circle_at_82%_20%,rgba(107,162,255,0.04),transparent_40%)]" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-3">
+          <div className="relative flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2 sm:space-y-3">
               <motion.p className="section-label text-coral-500" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>{todayStrLabel}</motion.p>
-              <motion.h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl lg:text-5xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <motion.h1 className="font-display text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tight text-neutral-900" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 {tToday(`greeting.${greetingKey}`)}
               </motion.h1>
-              <motion.p className="max-w-xl text-base leading-7 text-neutral-500" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <motion.p className="max-w-lg sm:max-w-xl text-sm sm:text-base leading-6 sm:leading-7 text-neutral-500" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 {tToday(`motivation.${motivationKey}`)}
               </motion.p>
               <motion.div className="flex flex-wrap items-center gap-2 pt-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-                <span className="inline-flex items-center gap-1.5 rounded-pill bg-mint-50 px-3 py-1 text-xs font-medium text-mint-600">
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-mint-50 px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-medium text-mint-600">
                   <motion.span className="h-1.5 w-1.5 rounded-full bg-mint-400" animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 2, repeat: Infinity }} />
                   {tToday("aiReady")}
                 </span>
@@ -263,8 +270,8 @@ export default function TodayPage() {
               </motion.div>
             </div>
             {insight ? (
-              <motion.div className="flex items-center gap-4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}>
-                <ProgressRing progress={completionRate} size={100} strokeWidth={6} label={tToday("summary.complete")} />
+              <motion.div className="flex items-center justify-start lg:justify-center gap-4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}>
+                <ProgressRing progress={completionRate} size={80} strokeWidth={6} label={tToday("summary.complete")} />
               </motion.div>
             ) : null}
           </div>
@@ -283,7 +290,7 @@ export default function TodayPage() {
         </AnimatePresence>
 
         {/* ===== QUICK METRICS ===== */}
-        <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StaggerContainer className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <StaggerItem><StatCard label={tToday("planStatus")} value={todayPlan.items.length.toString()} hint={todayPlan.items.length ? tToday("itemsScheduled", { count: todayPlan.items.length.toString() }) : tToday("generateToBegin")} accent="coral" icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" /><circle cx="12" cy="12" r="4" /></svg>} /></StaggerItem>
           <StaggerItem><StatCard label={tToday("completedTotal")} value={insight ? `${insight.completed_tasks}/${insight.total_tasks}` : "0/0"} hint={insight ? `${completionRate}%` : tToday("noDataYet")} accent="mint" icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M20 6L9 17l-5-5" /></svg>} /></StaggerItem>
           <StaggerItem><StatCard label={tToday("pendingTasks")} value={insight ? `${insight.pending_tasks}` : "0"} hint={insight ? insight.top_focus : tToday("waitingForData")} accent="sky" icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M12 3v18" /><path d="M7 8c0-2.8 2.2-5 5-5s5 2.2 5 5c0 4-5 7-5 7s-5-3-5-7Z" /></svg>} /></StaggerItem>
@@ -291,7 +298,7 @@ export default function TodayPage() {
         </StaggerContainer>
 
         {/* ===== TIMELINE + AI (single column) ===== */}
-        <Card variant="glass" className="p-6 sm:p-8">
+        <Card variant="glass" className="p-5 sm:p-6 lg:p-8">
             <SectionHeader
             eyebrow={tToday("dailyPlan")}
             title={todayPlan.items.length ? tToday("itemsScheduled", { count: todayPlan.items.length.toString() }) : tToday("noPlan")}
@@ -313,13 +320,25 @@ export default function TodayPage() {
                 const isLast = index === todayPlan.items.length - 1;
                 const itemStatus = item.status === "completed" ? "completed" : item.status === "in_progress" ? "active" : "pending";
                 return (
-                  <motion.div
+                  <SwipeableCard
                     key={item.id}
                     className="relative flex gap-4 group"
-                    custom={index}
-                    initial={{ opacity: 0, x: -15, scale: 0.97 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    transition={{ delay: index * 0.08, duration: 0.4, ease: easeTimeline }}
+                    disabled={item.task_id === null || busyAction === "progress"}
+                    delay={index * 0.08}
+                    leftAction={item.task_id ? {
+                      direction: "left",
+                      label: swipeActions.complete.label,
+                      icon: swipeActions.complete.icon,
+                      color: "bg-gradient-to-l from-mint-500 to-mint-400",
+                      onSwipe: () => progressTask("complete", item.task_id!),
+                    } : undefined}
+                    rightAction={item.task_id ? {
+                      direction: "right",
+                      label: swipeActions.delay.label,
+                      icon: swipeActions.delay.icon,
+                      color: "bg-gradient-to-r from-sky-500 to-sky-400",
+                      onSwipe: () => progressTask("delay", item.task_id!),
+                    } : undefined}
                   >
                     <div className="flex flex-col items-center">
                       <div className={cn("relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-300", itemStatus === "completed" ? "border-mint-400 bg-mint-50" : itemStatus === "active" ? "border-coral-400 bg-coral-50" : "border-neutral-200 bg-white group-hover:border-neutral-300")}>
@@ -350,7 +369,7 @@ export default function TodayPage() {
                         ) : null}
                       </div>
                     </div>
-                  </motion.div>
+                  </SwipeableCard>
                 );
               })}
             </div>
@@ -381,7 +400,7 @@ export default function TodayPage() {
         </AnimatePresence>
 
         {/* ===== AI ADJUSTMENT ===== */}
-        <Card variant="glass" className="p-6 sm:p-8">
+        <Card variant="glass" className="p-5 sm:p-6 lg:p-8">
           <SectionHeader eyebrow={tToday("aiAssistant")} title={tToday("adjustTitle")} description={tToday("adjustDesc")} />
           <div className="mt-4 space-y-3">
             <Input placeholder={tToday("aiAdjustPlaceholder")} value={adjustmentText} onChange={(event) => setAdjustmentText(event.target.value)} />
@@ -412,7 +431,7 @@ export default function TodayPage() {
         </Card>
 
         {/* ===== INSIGHT + TASK QUEUE in grid ===== */}
-        <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="grid gap-5 sm:gap-6 lg:gap-8 lg:grid-cols-[1.3fr_0.7fr]">
           {/* Task queue */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -473,10 +492,10 @@ export default function TodayPage() {
                   ))}
                 </div>
                 {insight.highlights.length > 0 ? (
-                  <div className="mt-6 space-y-2">
+                  <div className="mt-5 sm:mt-6 space-y-2">
                     <p className="section-label">{tToday("summary.highlights")}</p>
                     {insight.highlights.map((item, i) => (
-                      <motion.div key={item} className="rounded-soft border border-border-light bg-white/60 px-4 py-3 text-sm text-neutral-600" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.1 }}>
+                      <motion.div key={item} className="rounded-soft border border-border-light bg-white/60 px-3 sm:px-4 py-3 text-xs sm:text-sm text-neutral-600" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.1 }}>
                         <div className="flex items-start gap-2">
                           <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-coral-300" />
                           <span>{item}</span>
@@ -488,12 +507,13 @@ export default function TodayPage() {
               </Card>
             </motion.div>
           ) : (
-            <Card variant="glass" className="p-6">
+            <Card variant="glass" className="p-5 sm:p-6">
               <EmptyState illustration="insight" title={tToday("insightNone")} description={tToday("insightNoneDesc")} />
             </Card>
           )}
         </div>
       </motion.div>
+      </PullToRefresh>
     </main>
   );
 }

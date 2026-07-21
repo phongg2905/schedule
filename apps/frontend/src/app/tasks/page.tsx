@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/motion";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
-import { Modal } from "@/components/ui/modal";
+import dynamic from "next/dynamic";
+
+// Lazy load Modal — only needed when user opens draft plan preview
+const Modal = dynamic(() => import("@/components/ui/modal").then((mod) => mod.Modal), {
+  ssr: false,
+  loading: () => null,
+});
 import { getErrorMessage } from "@/lib/api-error";
 import { useAppIntl } from "@/providers/intl-provider";
 import { apiFetch } from "@/services/api";
@@ -20,7 +26,24 @@ import { fetchMe } from "@/services/auth";
 import { cn } from "@/lib/cn";
 import { formatDateKey } from "@/lib/date";
 import { sortByTime } from "@/lib/sort";
+import { SwipeableCard, swipeActions } from "@/components/ui/swipeable-card";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { FadeIn, FadeInDown } from "@/lib/motion";
+
+export default function TasksPage() {
+  return (
+    <Suspense fallback={
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <div className="space-y-5 sm:space-y-6">
+          <LoadingState lines={1} variant="card" />
+          <LoadingState lines={4} variant="card" />
+        </div>
+      </main>
+    }>
+      <TasksPageContent />
+    </Suspense>
+  );
+}
 
 type Task = {
   id: string;
@@ -73,7 +96,7 @@ const statusBadge: Record<string, { variant: "coral" | "sky" | "mint" | "lavende
 
 const easeOut = [0.25, 0.1, 0.25, 1] as const;
 
-export default function TasksPage() {
+function TasksPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tTasks = useTranslations("tasks");
@@ -126,6 +149,13 @@ export default function TasksPage() {
       setDraftOpen(isDraftPlan && searchParams.get("autoplan") === "1");
     } catch { router.push("/login"); }
     finally { setLoading(false); }
+  }
+
+  async function refreshPage() {
+    try {
+      const data = await apiFetch<Task[]>("/tasks");
+      setTasks(data);
+    } catch { /* silently fail */ }
   }
 
   useEffect(() => { void load(); }, []);
@@ -221,21 +251,29 @@ export default function TasksPage() {
       : true
   );
 
+  function getRelativeDateStr(daysOffset: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() + daysOffset);
+    return formatDateKey(date);
+  }
+
   const todayStr = formatDateKey();
+  const yesterdayStr = getRelativeDateStr(-1);
+  const tomorrowStr = getRelativeDateStr(1);
 
   const todayTasks = sortByTime(filteredTasks.filter((t) => t.deadline === todayStr && t.status !== "completed"));
   const completedTasks = filteredTasks
     .filter((t) => t.status === "completed" && t.completed_at && formatDateKey(new Date(t.completed_at)) === todayStr)
     .sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? ""));
-  const upcomingTasks = sortByTime(filteredTasks.filter((t) => t.deadline && t.deadline > todayStr && t.status !== "completed"));
-  const overdueTasks = sortByTime(filteredTasks.filter((t) => t.deadline && t.deadline < todayStr && t.status !== "completed"));
+  const upcomingTasks = sortByTime(filteredTasks.filter((t) => t.deadline === tomorrowStr && t.status !== "completed"));
+  const overdueTasks = sortByTime(filteredTasks.filter((t) => t.deadline === yesterdayStr && t.status !== "completed"));
 
   const weekDates = getWeekDates();
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <FadeIn className="space-y-6">
+      <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <FadeIn className="space-y-5 sm:space-y-6">
           <LoadingState lines={1} variant="card" />
           <LoadingState lines={4} variant="card" />
         </FadeIn>
@@ -244,22 +282,23 @@ export default function TasksPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <motion.div className="space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+      <PullToRefresh onRefresh={refreshPage}>
+      <motion.div className="space-y-5 sm:space-y-6 lg:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <FadeInDown>
               <p className="section-label text-coral-500">{tTasks("page.eyebrow")}</p>
             </FadeInDown>
             <motion.h1 className="page-title" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               {tTasks("page.title")}
             </motion.h1>
-            <motion.p className="mt-1 text-sm text-neutral-500" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
+            <motion.p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-neutral-500" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
               {tTasks("page.count", { count: tasks.length })}
             </motion.p>
           </div>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="shrink-0">
             <div className="flex flex-wrap gap-2">
               <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}>
                 <Button
@@ -273,17 +312,19 @@ export default function TasksPage() {
                     void generateDraftPlan();
                   }}
                   disabled={draftLoading || draftActionLoading !== null}
+                  className="w-full sm:w-auto"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
                     <path d="M12 3v18M3 12h18" />
                     <path d="M7 7l10 10" />
                   </svg>
-                  {draftPlan ? "Review draft" : "Auto plan"}
+                  <span className="hidden xs:inline">{draftPlan ? "Review draft" : "Auto plan"}</span>
+                  <span className="xs:hidden">{draftPlan ? "Draft" : "Plan"}</span>
                 </Button>
               </motion.div>
               <Link href="/tasks/new">
                 <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}>
-                  <Button variant="primary" size="md">
+                  <Button variant="primary" size="md" className="w-full sm:w-auto">
                     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]"><path d="M12 5v14M5 12h14" /></svg>
                     {tTasks("create.title")}
                   </Button>
@@ -295,14 +336,14 @@ export default function TasksPage() {
 
         {/* Tabs & Search */}
         <motion.div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="flex gap-1 rounded-soft border border-border-light bg-white/60 p-1 overflow-x-auto flex-1 sm:flex-none">
               {(["today", "week", "month"] as const).map((tab) => (
                 <motion.button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "rounded-[10px] px-3 sm:px-4 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap",
+                    "rounded-[10px] px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap",
                     activeTab === tab ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-700"
                   )}
                   whileHover={{ y: -1 }}
@@ -315,18 +356,19 @@ export default function TasksPage() {
             {/* Mobile search toggle */}
             <button
               onClick={() => setShowMobileSearch(!showMobileSearch)}
-              className="sm:hidden flex h-9 w-9 items-center justify-center rounded-[10px] text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+              className="sm:hidden flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+              aria-label={tTasks("search")}
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
               </svg>
             </button>
           </div>
-          <div className={cn("relative w-full sm:w-64", !showMobileSearch && "hidden sm:block")}>
+          <div className={cn("relative w-full sm:max-w-xs", showMobileSearch ? "block" : "hidden sm:block")}>
             <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
             </svg>
-            <Input placeholder={tTasks("search")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+            <Input placeholder={tTasks("search")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-10 sm:h-auto" />
           </div>
         </motion.div>
 
@@ -374,7 +416,7 @@ export default function TasksPage() {
               {upcomingTasks.length > 0 && (
                 <section>
                   <div className="mb-3 flex items-center gap-2">
-                    <h2 className="font-display text-lg font-semibold text-neutral-800">{tTasks("filter.upcoming")}</h2>
+                    <h2 className="font-display text-lg font-semibold text-neutral-800">{tTasks("filter.tomorrow")}</h2>
                     <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-500">{upcomingTasks.length}</span>
                   </div>
                   <div className="grid gap-2">
@@ -415,8 +457,8 @@ export default function TasksPage() {
           <AnimatePresence mode="wait">
             <motion.div key="week-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               <Card variant="glass" className="overflow-hidden">
-                <div className="overflow-x-auto pb-2 md:pb-0 -mx-1 sm:mx-0">
-                <div className="grid min-h-[350px] min-w-[600px] grid-cols-7 divide-x divide-border-light md:min-w-0">
+                <div className="overflow-x-auto pb-2 md:pb-0 -mx-1 sm:mx-0 scrollbar-thin">
+                <div className="grid min-h-[300px] sm:min-h-[350px] min-w-[500px] sm:min-w-[600px] grid-cols-7 divide-x divide-border-light md:min-w-0">
                   {weekDates.map((date, idx) => {
                     const dateStr = formatDateKey(date);
                     const dayTasks = sortByTime(filteredTasks.filter((t) => t.deadline === dateStr));
@@ -431,8 +473,8 @@ export default function TasksPage() {
                         transition={{ delay: idx * 0.05 }}
                       >
                         <div className={cn("mb-2 text-center", isTodayDate && "font-semibold")}>
-                          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{tTasks(`week.${dayName}`)}</p>
-                          <p className={cn("mt-0.5 text-lg font-semibold", isTodayDate ? "text-coral-500" : "text-neutral-700")}>{date.getDate()}</p>
+                          <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{tTasks(`week.${dayName}`).substring(0,3)}</p>
+                          <p className={cn("mt-0.5 text-base sm:text-lg font-semibold", isTodayDate ? "text-coral-500" : "text-neutral-700")}>{date.getDate()}</p>
                         </div>
                         <div className="flex-1 space-y-1">
                           {dayTasks.slice(0, 4).map((task) => (
@@ -493,6 +535,7 @@ export default function TasksPage() {
           </AnimatePresence>
         )}
       </motion.div>
+      </PullToRefresh>
 
       <Modal
         open={draftOpen}
