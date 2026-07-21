@@ -1,7 +1,12 @@
+import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
-import { ModuleIllustration } from "@/components/ui/illustrations";
+
+const ModuleIllustration = dynamic(
+  () => import("@/components/ui/illustrations").then((mod) => mod.ModuleIllustration),
+  { ssr: false }
+);
 
 type PageHeaderProps = {
   eyebrow: string;

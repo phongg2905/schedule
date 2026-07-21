@@ -1,9 +1,22 @@
+import dynamic from "next/dynamic";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
-import { ModuleIllustration } from "@/components/ui/illustrations";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+
+// Lazy-load illustrations — heavy SVG components only rendered when empty state is visible
+const ModuleIllustration = dynamic(
+  () => import("@/components/ui/illustrations").then((mod) => mod.ModuleIllustration),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex aspect-[320/220] w-full max-w-sm items-center justify-center rounded-[28px] border border-border-light bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-4">
+        <div className="h-12 w-12 rounded-full bg-neutral-100 animate-pulse" />
+      </div>
+    ),
+  }
+);
 
 type EmptyStateProps = {
   title: string;
