@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { motion } from "framer-motion";
+import { motion } from "@/lib/motion";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -141,18 +141,18 @@ export default function HomePage() {
     ];
 
     return (
-      <div className="relative min-h-screen">
-        <section className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col items-center justify-center px-4 pt-20 sm:px-6 lg:px-8">
+      <div className="relative min-h-screen min-h-dvh">
+        <section className="relative mx-auto flex min-h-[calc(100vh-4rem)] min-h-[calc(100dvh-4rem)] max-w-7xl flex-col items-center justify-center px-4 pt-16 sm:px-6 lg:px-8">
           <FadeInDown>
-            <span className="inline-flex items-center gap-2 rounded-pill border border-coral-100 bg-coral-50/60 px-4 py-2 text-xs font-semibold tracking-wider text-coral-500 backdrop-blur-sm">
+            <span className="inline-flex items-center gap-2 rounded-pill border border-coral-100 bg-coral-50/60 px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold tracking-wider text-coral-500 backdrop-blur-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-coral-400" />
               {tHome("badge")}
             </span>
           </FadeInDown>
 
           <FadeInUp delay={0.1}>
-            <div className="max-w-3xl text-center">
-              <h1 className="font-display text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl lg:text-6xl">
+            <div className="w-full max-w-3xl px-2 sm:px-0 text-center">
+              <h1 className="font-display text-[clamp(2rem,5vw,4rem)] font-bold tracking-tight text-neutral-900 leading-[1.1]">
                 {tHome.rich("title", {
                   accent: () => (
                     <span className="bg-gradient-to-r from-coral-400 to-coral-600 bg-clip-text text-transparent">
@@ -161,36 +161,36 @@ export default function HomePage() {
                   ),
                 })}
               </h1>
-              <p className="mx-auto mt-6 max-w-xl text-lg leading-7 text-neutral-500">{tHome("description")}</p>
+              <p className="mx-auto mt-4 sm:mt-6 max-w-xl text-[15px] sm:text-lg leading-6 sm:leading-7 text-neutral-500">{tHome("description")}</p>
             </div>
           </FadeInUp>
 
           <FadeInUp delay={0.2}>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Link href="/register"><Button variant="primary" size="lg" className="shadow-button-primary">{tHome("cta")}</Button></Link>
-              <Link href="/login"><Button variant="secondary" size="lg">{tHome("signIn")}</Button></Link>
+            <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+              <Link href="/register"><Button variant="primary" size="lg" className="shadow-button-primary w-full sm:w-auto">{tHome("cta")}</Button></Link>
+              <Link href="/login"><Button variant="secondary" size="lg" className="w-full sm:w-auto">{tHome("signIn")}</Button></Link>
             </div>
           </FadeInUp>
 
-          <StaggerContainer className="mt-16 grid w-full max-w-4xl gap-4 sm:grid-cols-3">
+          <StaggerContainer className="mt-12 sm:mt-16 grid w-full max-w-4xl gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
             {features.map((feature) => (
               <StaggerItem key={feature.titleKey}>
-                <Card variant="ambient" className="group p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover">
-                  <div className={cn("mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br transition-transform duration-300 group-hover:scale-110", feature.gradient)}>
+                <Card variant="ambient" className="group p-5 sm:p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover">
+                  <div className={cn("mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl bg-gradient-to-br transition-transform duration-300 group-hover:scale-110", feature.gradient)}>
                     {feature.icon}
                   </div>
-                  <h3 className="mb-2 font-display text-lg font-semibold text-neutral-900">{tHome(`features.${feature.titleKey}`)}</h3>
-                  <p className="text-sm leading-6 text-neutral-500">{tHome(`features.${feature.descKey}`)}</p>
+                  <h3 className="mb-1.5 sm:mb-2 font-display text-base sm:text-lg font-semibold text-neutral-900">{tHome(`features.${feature.titleKey}`)}</h3>
+                  <p className="text-xs sm:text-sm leading-5 sm:leading-6 text-neutral-500">{tHome(`features.${feature.descKey}`)}</p>
                 </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
 
-          <motion.div className="mt-16 text-neutral-300" animate={{ y: [0, 8, 0] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}>
-            <svg viewBox="0 0 24 24" className="h-6 w-6 fill-none stroke-current stroke-[1.5]"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+          <motion.div className="mt-12 sm:mt-16 text-neutral-300" animate={{ y: [0, 8, 0] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5 sm:h-6 sm:w-6 fill-none stroke-current stroke-[1.5]"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
           </motion.div>
         </section>
-        <div className="h-32 bg-gradient-to-b from-transparent to-bg-soft" />
+        <div className="h-20 sm:h-32 bg-gradient-to-b from-transparent to-bg-soft" />
       </div>
     );
   }
@@ -215,30 +215,30 @@ export default function HomePage() {
   const completionRate = insight && insight.total_tasks > 0 ? Math.round((insight.completed_tasks / insight.total_tasks) * 100) : 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <motion.div className="space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+      <motion.div className="space-y-5 sm:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
         
         {/* ── Hero Section ── */}
         <motion.section
-          className="relative overflow-hidden rounded-[32px] border border-border-light bg-gradient-to-br from-bg-warm via-white to-bg-soft px-6 py-8 shadow-card sm:px-10 sm:py-10"
+          className="relative overflow-hidden rounded-[20px] sm:rounded-[32px] border border-border-light bg-gradient-to-br from-bg-warm via-white to-bg-soft px-5 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-10 shadow-card"
           initial={{ opacity: 0, y: 20, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,122,92,0.06),transparent_40%),radial-gradient(circle_at_82%_20%,rgba(107,162,255,0.04),transparent_40%)]" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-3">
+          <div className="relative flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2 sm:space-y-3">
               <motion.p className="section-label text-coral-500" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                 {getTodayDateStr(locale)}
               </motion.p>
-              <motion.h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <motion.h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-neutral-900" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 {tHome(`dashboard.greeting_${greetingKey}`)}{user ? `, ${user.name.split(" ")[0]}` : ""}
               </motion.h1>
-              <motion.p className="max-w-xl text-base leading-7 text-neutral-500" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <motion.p className="max-w-lg sm:max-w-xl text-sm sm:text-base leading-6 sm:leading-7 text-neutral-500" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 {tHome(`dashboard.motivation_${motivationKey}`)}
               </motion.p>
               <motion.div className="flex flex-wrap items-center gap-2 pt-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-                <span className="inline-flex items-center gap-1.5 rounded-pill bg-mint-50 px-3 py-1 text-xs font-medium text-mint-600">
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-mint-50 px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-medium text-mint-600">
                   <motion.span className="h-1.5 w-1.5 rounded-full bg-mint-400" animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 2, repeat: Infinity }} />
                   {tHome("dashboard.aiReady")}
                 </span>
@@ -246,8 +246,8 @@ export default function HomePage() {
               </motion.div>
             </div>
             {insight ? (
-              <motion.div className="flex items-center gap-4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}>
-                <ProgressRing progress={completionRate} size={90} strokeWidth={5} label={tHome("dashboard.todayProgress")} />
+              <motion.div className="flex items-center justify-start lg:justify-center gap-4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}>
+                <ProgressRing progress={completionRate} size={72} strokeWidth={5} label={tHome("dashboard.todayProgress")} />
               </motion.div>
             ) : null}
           </div>
@@ -255,25 +255,25 @@ export default function HomePage() {
 
         {/* ── Quick Actions ── */}
         <motion.div className="flex flex-wrap gap-2 sm:gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-          <Link href="/tasks/new">
-            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
-              <Button variant="primary" size="md">
+          <Link href="/tasks/new" className="flex-1 sm:flex-none">
+            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} className="w-full">
+              <Button variant="primary" size="md" className="w-full sm:w-auto">
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]"><path d="M12 5v14M5 12h14" /></svg>
                 {tHome("dashboard.createTask")}
               </Button>
             </motion.div>
           </Link>
-          <Link href="/today">
-            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
-              <Button variant="secondary" size="md">
+          <Link href="/today" className="flex-1 sm:flex-none">
+            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} className="w-full">
+              <Button variant="secondary" size="md" className="w-full sm:w-auto">
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>
                 {tHome("dashboard.generatePlan")}
               </Button>
             </motion.div>
           </Link>
-          <Link href="/tasks">
-            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
-              <Button variant="ghost" size="md">
+          <Link href="/tasks" className="flex-1 sm:flex-none">
+            <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} className="w-full">
+              <Button variant="ghost" size="md" className="w-full sm:w-auto">
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
                 {tHome("dashboard.openTasks")}
               </Button>

@@ -5,7 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "@/lib/motion";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,8 +169,8 @@ export default function CreateTaskPage() {
   ];
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
-      <motion.div className="space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <main className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
+      <motion.div className="space-y-5 sm:space-y-6 lg:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
         {/* Back & Header */}
         <div>
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
@@ -220,7 +220,7 @@ export default function CreateTaskPage() {
         ) : (
           <motion.form
             onSubmit={onSubmit}
-            className="space-y-8"
+            className="space-y-5 sm:space-y-6 lg:space-y-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5 }}
@@ -235,7 +235,7 @@ export default function CreateTaskPage() {
                 placeholder={tTasks("create.titlePlaceholder")}
                 required
                 autoFocus
-                className="w-full border-0 border-b-2 border-neutral-200 bg-transparent px-0 py-3 font-display text-2xl font-semibold tracking-tight text-neutral-900 outline-none transition-colors placeholder:text-neutral-300 focus:border-coral-300"
+                className="w-full border-0 border-b-2 border-neutral-200 bg-transparent px-0 py-2.5 sm:py-3 font-display text-xl sm:text-2xl font-semibold tracking-tight text-neutral-900 outline-none transition-colors placeholder:text-neutral-300 focus:border-coral-300"
               />
             </motion.div>
 
@@ -253,14 +253,14 @@ export default function CreateTaskPage() {
             {/* Category */}
             <motion.div className="space-y-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.4 }}>
               <label className="text-xs font-medium text-neutral-600">{tTasks("create.category")}</label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {categories.map((cat, i) => (
                   <motion.button
                     key={cat.value}
                     type="button"
                     onClick={() => setSelectedCategory(selectedCategory === cat.value ? "" : cat.value)}
                     className={cn(
-                      "rounded-pill border px-4 py-2 text-xs font-medium transition-all duration-200",
+                      "rounded-pill border px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium transition-all duration-200",
                       selectedCategory === cat.value ? cat.color + " ring-2 ring-offset-1 ring-coral-200" : "border-border-light bg-white text-neutral-500 hover:border-neutral-300"
                     )}
                     initial={{ opacity: 0, y: 8 }}
@@ -278,14 +278,14 @@ export default function CreateTaskPage() {
             {/* Duration presets */}
             <motion.div className="space-y-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.4 }}>
               <label className="text-xs font-medium text-neutral-600">{tTasks("create.duration")}</label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {durationPresets.map((preset, i) => (
                   <motion.button
                     key={preset.value}
                     type="button"
                     onClick={() => { setSelectedDuration(preset.value); setShowCustomDuration(false); }}
                     className={cn(
-                      "rounded-pill border px-4 py-2 text-xs font-medium transition-all duration-200",
+                      "rounded-pill border px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium transition-all duration-200",
                       selectedDuration === preset.value && !showCustomDuration
                         ? "border-coral-200 bg-coral-50 text-coral-600"
                         : "border-border-light bg-white text-neutral-500 hover:border-neutral-300"
@@ -303,7 +303,7 @@ export default function CreateTaskPage() {
                   type="button"
                   onClick={() => setShowCustomDuration(true)}
                   className={cn(
-                    "rounded-pill border px-4 py-2 text-xs font-medium transition-all duration-200",
+                    "rounded-pill border px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium transition-all duration-200",
                     showCustomDuration ? "border-coral-200 bg-coral-50 text-coral-600" : "border-border-light bg-white text-neutral-500 hover:border-neutral-300"
                   )}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -385,14 +385,14 @@ export default function CreateTaskPage() {
             {/* Deadline quick picks */}
             <motion.div className="space-y-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>
               <label className="text-xs font-medium text-neutral-600">{tTasks("create.deadline")}</label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {["today", "tomorrow", "weekend", "nextWeek"].map((option, i) => (
                   <motion.button
                     key={option}
                     type="button"
                     onClick={() => { setSelectedDeadline(getDateForOption(option)); setShowCustomDate(false); }}
                     className={cn(
-                      "rounded-pill border px-4 py-2 text-xs font-medium transition-all duration-200",
+                      "rounded-pill border px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium transition-all duration-200",
                       selectedDeadline === getDateForOption(option) && !showCustomDate
                         ? "border-coral-200 bg-coral-50 text-coral-600"
                         : "border-border-light bg-white text-neutral-500 hover:border-neutral-300"
@@ -410,7 +410,7 @@ export default function CreateTaskPage() {
                   type="button"
                   onClick={() => setShowCustomDate(true)}
                   className={cn(
-                    "rounded-pill border px-4 py-2 text-xs font-medium transition-all duration-200",
+                    "rounded-pill border px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium transition-all duration-200",
                     showCustomDate ? "border-coral-200 bg-coral-50 text-coral-600" : "border-border-light bg-white text-neutral-500 hover:border-neutral-300"
                   )}
                   initial={{ opacity: 0, y: 8 }}
@@ -444,14 +444,14 @@ export default function CreateTaskPage() {
             {/* Priority */}
             <motion.div className="space-y-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.4 }}>
               <label className="text-xs font-medium text-neutral-600">{tTasks("create.priority")}</label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {priorityOptions.map((opt, i) => (
                   <motion.button
                     key={opt.value}
                     type="button"
                     onClick={() => setSelectedPriority(opt.value)}
                     className={cn(
-                      "rounded-pill border px-4 py-2 text-xs font-medium transition-all duration-200",
+                      "rounded-pill border px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium transition-all duration-200",
                       selectedPriority === opt.value
                         ? "border-coral-200 bg-coral-50 text-coral-600"
                         : "border-border-light bg-white text-neutral-500 hover:border-neutral-300"
@@ -521,17 +521,17 @@ export default function CreateTaskPage() {
 
             {/* Submit */}
             <motion.div
-              className="flex items-center gap-4 pt-4 border-t border-border-light"
+              className="flex flex-col xs:flex-row items-stretch xs:items-center gap-3 pt-4 border-t border-border-light"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.45, duration: 0.4 }}
             >
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Button disabled={loading || !title.trim()} type="submit" size="lg">
+                <Button disabled={loading || !title.trim()} type="submit" size="lg" className="w-full xs:w-auto">
                   {loading ? tTasks("create.submitting") : tTasks("create.submit")}
                 </Button>
               </motion.div>
-              <Link href="/tasks"><Button type="button" variant="ghost" size="lg">{tTasks("detail.backToTasks")}</Button></Link>
+              <Link href="/tasks"><Button type="button" variant="ghost" size="lg" className="w-full xs:w-auto">{tTasks("detail.backToTasks")}</Button></Link>
             </motion.div>
           </motion.form>
         )}

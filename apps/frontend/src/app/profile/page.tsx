@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { motion, type Variants } from "framer-motion";
+import { motion, type Variants } from "@/lib/motion";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -89,8 +89,8 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <FadeIn className="space-y-6">
+      <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
+        <FadeIn className="space-y-5 sm:space-y-6">
           <LoadingState lines={1} variant="card" />
           <LoadingState lines={3} variant="card" />
         </FadeIn>
@@ -99,9 +99,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
       <motion.div
-        className="space-y-8"
+        className="space-y-5 sm:space-y-6 lg:space-y-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
@@ -113,7 +113,7 @@ export default function ProfilePage() {
           </FadeInUp>
 
           <motion.div
-            className="flex items-center gap-6"
+            className="flex flex-col xs:flex-row items-center xs:items-start gap-4 sm:gap-6 text-center xs:text-left"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4 }}
@@ -135,10 +135,10 @@ export default function ProfilePage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.25, duration: 0.4 }}
             >
-              <h1 className="font-display text-3xl font-bold tracking-tight text-neutral-900">
+              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
                 {user?.name}
               </h1>
-              <p className="mt-1 text-sm text-neutral-500">{user?.email}</p>
+              <p className="mt-1 text-xs sm:text-sm text-neutral-500">{user?.email}</p>
             </motion.div>
           </motion.div>
         </div>

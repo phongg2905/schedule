@@ -5,7 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { motion } from "framer-motion";
+import { motion } from "@/lib/motion";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,17 +44,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden bg-ambient">
+    <div className="flex min-h-screen min-h-dvh w-full overflow-x-hidden bg-ambient">
       {/* Left - Brand & Illustration */}
       <motion.div
-        className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-coral-500 to-coral-400 p-12 lg:flex"
+        className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-coral-500 to-coral-400 p-8 xl:p-12 lg:flex"
         initial={{ opacity: 0, x: -60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
       >
-        <div className="pointer-events-none absolute -right-20 -top-20 h-96 w-96 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -bottom-32 -left-32 h-[500px] w-[500px] rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute right-1/4 top-1/3 h-40 w-40 rounded-full bg-white/8" />
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 sm:h-96 w-72 sm:w-96 rounded-full bg-white/10" />
+        <div className="pointer-events-none absolute -bottom-32 -left-32 h-[400px] sm:h-[500px] w-[400px] sm:w-[500px] rounded-full bg-white/5" />
+        <div className="pointer-events-none absolute right-1/4 top-1/3 h-32 sm:h-40 w-32 sm:w-40 rounded-full bg-white/8" />
 
         <motion.div
           className="relative"
@@ -63,27 +63,27 @@ export default function LoginPage() {
           transition={{ delay: 0.3, duration: 0.5 }}
         >
           <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-white/20 backdrop-blur-sm">
-              <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white">
+            <span className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-[12px] sm:rounded-[16px] bg-white/20 backdrop-blur-sm">
+              <svg viewBox="0 0 24 24" className="h-5 w-5 sm:h-6 sm:w-6 fill-white">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
               </svg>
             </span>
-            <span className="text-lg font-semibold tracking-tight text-white/90">AI Planner</span>
+            <span className="text-base sm:text-lg font-semibold tracking-tight text-white/90">AI Planner</span>
           </div>
         </motion.div>
 
         <motion.div
-          className="relative space-y-4"
+          className="relative space-y-3 sm:space-y-4"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.6 }}
         >
-          <h1 className="font-display text-4xl font-bold leading-tight text-white">
+          <h1 className="font-display text-2xl sm:text-3xl xl:text-4xl font-bold leading-tight text-white">
             {tLogin("brandTitle")}
             <br />
             {tLogin("brandSubtitle")}
           </h1>
-          <p className="max-w-md text-base leading-relaxed text-white/70">
+          <p className="max-w-md text-sm sm:text-base leading-relaxed text-white/70">
             {tLogin("brandDescription")}
           </p>
         </motion.div>
@@ -94,12 +94,12 @@ export default function LoginPage() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8, duration: 0.4 }}
         >
-          <p className="text-sm text-white/50">&copy; 2026 AI Planner &mdash; Your daily companion</p>
+          <p className="text-xs sm:text-sm text-white/50">&copy; 2026 AI Planner &mdash; Your daily companion</p>
         </motion.div>
       </motion.div>
 
       {/* Right - Form */}
-      <div className="flex w-full items-center justify-center px-6 lg:w-1/2">
+      <div className="flex w-full items-center justify-center px-4 sm:px-6 lg:w-1/2">
         <FadeInUp className="w-full max-w-sm">
           {/* Mobile brand */}
           <motion.div
@@ -134,23 +134,23 @@ export default function LoginPage() {
 
           <motion.form
             onSubmit={onSubmit}
-            className="space-y-4"
+            className="space-y-4 sm:space-y-5"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
           >
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-600">{tLogin("email")}</label>
+              <label className="text-[11px] sm:text-xs font-medium text-neutral-600">{tLogin("email")}</label>
               <Input type="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-600">{tLogin("password")}</label>
+              <label className="text-[11px] sm:text-xs font-medium text-neutral-600">{tLogin("password")}</label>
               <Input type="password" placeholder="••••••••" value={password} onChange={(event) => setPassword(event.target.value)} required />
             </div>
 
             {error ? (
               <motion.p
-                className="rounded-soft border border-coral-100 bg-coral-50 px-4 py-3 text-sm text-coral-600"
+                className="rounded-soft border border-coral-100 bg-coral-50 px-3 sm:px-4 py-3 text-xs sm:text-sm text-coral-600"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
@@ -162,7 +162,7 @@ export default function LoginPage() {
               {loading ? tCommon("signingIn") : tCommon("signIn")}
             </Button>
 
-            <p className="text-center text-sm text-neutral-500">
+            <p className="text-center text-xs sm:text-sm text-neutral-500">
               {tLogin("noAccount")}{" "}
               <Link href="/register" className="font-semibold text-coral-500 transition-colors hover:text-coral-600">
                 {tLogin("createLink")}
