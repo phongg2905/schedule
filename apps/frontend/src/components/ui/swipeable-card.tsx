@@ -22,6 +22,8 @@ type SwipeableCardProps = {
   leftAction?: SwipeAction;
   /** Swipe right action (e.g. delay/skip) */
   rightAction?: SwipeAction;
+  /** Show background action hints when idle */
+  showActionHints?: boolean;
   /** Disable swipe interaction */
   disabled?: boolean;
   /** Called when any swipe completes */
@@ -58,6 +60,7 @@ export function SwipeableCard({
   className,
   leftAction,
   rightAction,
+  showActionHints = true,
   disabled = false,
   onSwiped,
   threshold = SWIPE_THRESHOLD,
@@ -103,10 +106,10 @@ export function SwipeableCard({
       {/* Background actions */}
       <div className="pointer-events-none absolute inset-0 flex">
         {/* Right action hint (swipe left reveals) */}
-        {leftAction && (
+        {showActionHints && leftAction && (
           <motion.div
             className={cn(
-              "absolute right-0 top-0 flex h-full w-24 items-center justify-center rounded-r-[16px] sm:w-28",
+              "absolute right-0 top-0 flex h-full w-20 items-center justify-center rounded-r-[16px] sm:w-24",
               leftAction.color
             )}
             animate={{
@@ -123,10 +126,10 @@ export function SwipeableCard({
         )}
 
         {/* Left action hint (swipe right reveals) */}
-        {rightAction && (
+        {showActionHints && rightAction && (
           <motion.div
             className={cn(
-              "absolute left-0 top-0 flex h-full w-24 items-center justify-center rounded-l-[16px] sm:w-28",
+              "absolute left-0 top-0 flex h-full w-20 items-center justify-center rounded-l-[16px] sm:w-24",
               rightAction.color
             )}
             animate={{

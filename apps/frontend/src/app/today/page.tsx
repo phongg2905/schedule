@@ -323,6 +323,7 @@ export default function TodayPage() {
                   <SwipeableCard
                     key={item.id}
                     className="relative flex gap-4 group"
+                    showActionHints={false}
                     disabled={item.task_id === null || busyAction === "progress"}
                     delay={index * 0.08}
                     leftAction={item.task_id ? {
