@@ -61,6 +61,8 @@ const staggerItemVariants: Variants = {
 export default function ProfilePage() {
   const router = useRouter();
   const tProfile = useTranslations("profile");
+  const tTasks = useTranslations("tasks");
+  const tToday = useTranslations("today");
   const [user, setUser] = useState<User | null>(null);
   const [taskCount, setTaskCount] = useState<TaskCount>({ total: 0, completed: 0 });
   const [loading, setLoading] = useState(true);
@@ -86,6 +88,7 @@ export default function ProfilePage() {
     { label: tProfile("timezone"), value: user?.timezone || "" },
     { label: tProfile("role"), value: user?.role || "" },
   ];
+  const completionRate = taskCount.total > 0 ? Math.round((taskCount.completed / taskCount.total) * 100) : 0;
 
   if (loading) {
     return (
@@ -168,7 +171,7 @@ export default function ProfilePage() {
               >
                 {taskCount.completed}
               </motion.p>
-              <p className="mt-1 text-xs font-medium text-neutral-500">{tProfile("stats.tasksCreated")}</p>
+              <p className="mt-1 text-xs font-medium text-neutral-500">{tTasks("detail.completed")}</p>
             </Card>
           </motion.div>
           <motion.div variants={staggerItemVariants} initial="hidden" animate="visible" whileHover="hover" whileTap={{ scale: 0.98 }}>
@@ -179,9 +182,9 @@ export default function ProfilePage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.4, type: "spring", stiffness: 180 }}
               >
-                &mdash;
+                {completionRate}%
               </motion.p>
-              <p className="mt-1 text-xs font-medium text-neutral-500">{tProfile("stats.streak")}</p>
+              <p className="mt-1 text-xs font-medium text-neutral-500">{tToday("progress")}</p>
             </Card>
           </motion.div>
         </StaggerContainer>

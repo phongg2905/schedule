@@ -70,6 +70,7 @@ const successTextVariants: Variants = {
 export default function CreateTaskPage() {
   const router = useRouter();
   const tTasks = useTranslations("tasks");
+  const tCommon = useTranslations("common");
   const tErrors = useTranslations("errors");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -114,7 +115,7 @@ export default function CreateTaskPage() {
     try {
       await fetchMe();
       const duration = showCustomDuration && customDuration ? parseInt(customDuration, 10) : selectedDuration;
-      const deadline = selectedDeadline || (showCustomDate ? selectedDeadline : getDateForOption("today"));
+      const deadline = selectedDeadline || null;
 
       await apiFetch("/tasks", {
         method: "POST",
@@ -408,11 +409,11 @@ export default function CreateTaskPage() {
                 ))}
                 <motion.button
                   type="button"
-                  onClick={() => setShowCustomDate(true)}
-                  className={cn(
-                    "rounded-pill border px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium transition-all duration-200",
-                    showCustomDate ? "border-coral-200 bg-coral-50 text-coral-600" : "border-border-light bg-white text-neutral-500 hover:border-neutral-300"
-                  )}
+            onClick={() => setShowCustomDate(true)}
+            className={cn(
+              "rounded-pill border px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium transition-all duration-200",
+              showCustomDate ? "border-coral-200 bg-coral-50 text-coral-600" : "border-border-light bg-white text-neutral-500 hover:border-neutral-300"
+            )}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5, duration: 0.3 }}
@@ -420,6 +421,21 @@ export default function CreateTaskPage() {
                   whileTap={{ scale: 0.95 }}
                 >
                   {tTasks("create.deadlineChoose")}
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={() => { setSelectedDeadline(""); setShowCustomDate(false); }}
+                  className={cn(
+                    "rounded-pill border px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium transition-all duration-200",
+                    !selectedDeadline && !showCustomDate ? "border-coral-200 bg-coral-50 text-coral-600" : "border-border-light bg-white text-neutral-500 hover:border-neutral-300"
+                  )}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.55, duration: 0.3 }}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {tCommon("none")}
                 </motion.button>
               </div>
               <AnimatePresence>

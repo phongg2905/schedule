@@ -183,7 +183,26 @@ export default function TodayPage() {
     setGenerating(true);
     setBusyAction("generate");
     setError(null);
-    router.push("/tasks?autoplan=1");
+    try {
+      const generatedPlan = await apiFetch<DailyPlan>("/ai/generate-daily-plan", {
+        method: "POST",
+        body: JSON.stringify({
+          plan_date: todayStr,
+          context_window_type: "today_page",
+          trigger_source: "manual",
+        }),
+      });
+      setPlan(generatedPlan);
+      setAiExplanation(null);
+      setAiAdjustment(null);
+      setAdjustmentText("");
+      await refreshState();
+    } catch (err) {
+      setError(getErrorMessage(err, tErrors));
+    } finally {
+      setGenerating(false);
+      setBusyAction(null);
+    }
   }
 
   async function explainPlan() {

@@ -179,46 +179,9 @@ export default function SettingsPage() {
             </div>
           </SectionCard>
 
-          {/* General */}
-          <SectionCard
-            index={1}
-            icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" /><circle cx="12" cy="12" r="3" /></svg>}
-            title={tSettings("general.title")}
-            description={tSettings("general.description")}
-          >
-            <div className="rounded-soft border border-border-light bg-white/50 px-5 py-6 text-center">
-              <p className="text-sm text-neutral-500">{tSettings("appearance.comingSoon")}</p>
-            </div>
-          </SectionCard>
-
-          {/* Categories */}
-          <SectionCard
-            index={2}
-            icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" /></svg>}
-            title={tSettings("categories.title")}
-            description={tSettings("categories.description")}
-          >
-            <div className="rounded-soft border border-dashed border-border-light px-5 py-6 text-center">
-              <p className="text-sm text-neutral-500">{tSettings("categories.empty")}</p>
-              <p className="mt-2 text-xs text-neutral-400">{tSettings("categories.suggested")}</p>
-            </div>
-          </SectionCard>
-
-          {/* Labels */}
-          <SectionCard
-            index={3}
-            icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" /><path d="M7 7h.01" /></svg>}
-            title={tSettings("labels.title")}
-            description={tSettings("labels.description")}
-          >
-            <div className="rounded-soft border border-dashed border-border-light px-5 py-6 text-center">
-              <p className="text-sm text-neutral-500">{tSettings("labels.empty")}</p>
-            </div>
-          </SectionCard>
-
           {/* Working Schedule */}
           <SectionCard
-            index={4}
+            index={1}
             icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>}
             title={tSettings("schedule.title")}
             description={tSettings("schedule.description")}
@@ -281,25 +244,9 @@ export default function SettingsPage() {
             </form>
           </SectionCard>
 
-          {/* AI Preferences */}
-          <SectionCard
-            index={5}
-            icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5A3.5 3.5 0 0112 8.5M12 8.5a3.5 3.5 0 012.5 1M12 8.5v-4M12 15.5v4M15.5 12h4M4.5 12h4" /><path d="M9.5 14.5A3.5 3.5 0 0012 15.5" /></svg>}
-            title={tSettings("ai.title")}
-            description={tSettings("ai.description")}
-          >
-            <div className="rounded-soft border border-border-light bg-white/50 px-5 py-8 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-400">
-                <svg viewBox="0 0 24 24" className="h-6 w-6 fill-none stroke-current stroke-[1.8]"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-              </div>
-              <p className="text-sm font-medium text-neutral-600">{tSettings("ai.comingSoon")}</p>
-              <p className="mt-1 text-xs text-neutral-400">{tSettings("ai.comingSoonDesc")}</p>
-            </div>
-          </SectionCard>
-
           {/* Account */}
           <SectionCard
-            index={6}
+            index={2}
             icon={<svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>}
             title={tSettings("account.title")}
             description={tSettings("account.description")}
