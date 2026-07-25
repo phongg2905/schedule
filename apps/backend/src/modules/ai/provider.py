@@ -1,15 +1,30 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Protocol
 from urllib import error, request
 
 
 @dataclass
-class TaskOrderResult:
+class ScheduleItemResult:
+    task_id: str
+    label: str
+    start_time: str
+    end_time: str
+    reason: str
+
+
+@dataclass
+class DailyPlanResult:
+    status: str  # "ok" | "partial" | "day_off" | "needs_review"
     ordered_task_ids: list[str]
-    explanation: str
+    schedule_items: list[ScheduleItemResult]
+    overflow_task_ids: list[str] = field(default_factory=list)
+    explanation: str = ""
+    confidence: float = 0.0
+    highlights: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -19,7 +34,7 @@ class AdjustmentResult:
 
 
 class DailyPlanAIProvider(Protocol):
-    def rank_tasks(self, context: dict) -> TaskOrderResult:
+    def generate_daily_plan(self, context: dict) -> DailyPlanResult:
         ...
 
     def explain_plan(self, context: dict) -> str:
@@ -29,15 +44,192 @@ class DailyPlanAIProvider(Protocol):
         ...
 
 
+_SYSTEM_PROMPT = """Bạn là AI Planner, nhiệm vụ của bạn là tạo lịch làm việc trong ngày cho người dùng dựa trên dữ liệu đầu vào được cung cấp.
+
+Mục tiêu:
+- Tạo một lịch khả thi, thực tế, bám sát thói quen và ưu tiên của người dùng.
+- Chỉ đề xuất, không tự ý thay đổi dữ liệu cuối cùng.
+- Nếu dữ liệu thiếu hoặc có xung đột, ưu tiên phương án an toàn, hợp lý, và dễ chỉnh sửa.
+
+Nguyên tắc:
+1. Tôn trọng ràng buộc cứng:
+   - giờ làm việc
+   - giờ nghỉ trưa
+   - ngày nghỉ
+   - timezone
+   - xung đột thời gian
+   - giới hạn thời lượng trong ngày
+2. Ưu tiên theo:
+   - deadline gần hơn
+   - mức độ ưu tiên cao hơn
+   - task ngắn hơn nếu cần tối ưu slot trống
+   - thói quen và phản hồi gần đây của người dùng
+3. Chỉ dùng dữ liệu liên quan trực tiếp đến ngày hiện tại và lịch gần đây.
+4. Không dùng toàn bộ lịch sử thô nếu không cần.
+5. Không bịa dữ liệu.
+6. Không trả lời lan man. Kết quả phải rõ ràng, có cấu trúc, dễ parse.
+7. Nếu không thể xếp hết task, hãy nêu rõ task nào bị overflow và vì sao.
+8. Nếu người dùng có day-off, không tạo lịch làm việc, chỉ trả về trạng thái nghỉ.
+9. Output phải là JSON hợp lệ, không thêm văn bản ngoài JSON.
+
+Dữ liệu đầu vào có thể gồm:
+- user profile
+- timezone
+- work_start_time
+- work_end_time
+- lunch_start_time
+- lunch_end_time
+- day_offs
+- focus_hours
+- tasks của ngày hôm nay
+- schedule hiện tại
+- completed / skipped / deferred gần đây
+- feedback và preference gần đây
+- current date and time
+- trigger_source
+- context_window_type
+
+Nhiệm vụ của bạn:
+- Sắp xếp task theo thứ tự hợp lý trong ngày.
+- Phân bổ task vào các khung giờ phù hợp.
+- Giữ lịch thực tế, không nhồi quá mức.
+- Tạo giải thích ngắn gọn cho kế hoạch.
+- Nếu có thay đổi so với lịch cũ, hãy đề xuất điều chỉnh tối thiểu cần thiết.
+- Nếu không đủ chỗ, đánh dấu task bị overflow.
+
+Định dạng output JSON:
+{{
+  "status": "ok" | "partial" | "day_off" | "needs_review",
+  "ordered_task_ids": ["task_id_1", "task_id_2"],
+  "schedule_items": [
+    {{
+      "task_id": "task_id_1",
+      "label": "Task title",
+      "start_time": "YYYY-MM-DDTHH:MM:SS",
+      "end_time": "YYYY-MM-DDTHH:MM:SS",
+      "reason": "short explanation"
+    }}
+  ],
+  "overflow_task_ids": ["task_id_3"],
+  "explanation": "A concise explanation of why this plan is ordered this way.",
+  "confidence": 0.0,
+  "highlights": [
+    "Short note 1",
+    "Short note 2"
+  ]
+}}
+
+Ràng buộc khi tạo JSON:
+- Chỉ dùng task_id có trong input.
+- Không tạo field lạ.
+- Không để JSON lỗi.
+- Không đưa markdown, không đưa code fence.
+- Explanation phải ngắn, thực tế, dễ hiểu.
+- Confidence là số từ 0 đến 1.
+
+Nếu dữ liệu đầu vào không đủ để ra quyết định chắc chắn:
+- vẫn tạo phương án tốt nhất có thể
+- giảm confidence
+- ghi rõ trong explanation phần còn thiếu là gì
+- không bịa thêm task hoặc thời gian.
+"""
+
+
 class LocalDailyPlanAIProvider:
-    def rank_tasks(self, context: dict) -> TaskOrderResult:
-        ordered_task_ids = [task["id"] for task in context["tasks"]]
-        explanation = self._localized_text(
-            context,
-            en="Local fallback used because no OpenAI key is configured.",
-            vi="Bản dự phòng cục bộ được dùng vì chưa cấu hình OpenAI key.",
+    def generate_daily_plan(self, context: dict) -> DailyPlanResult:
+        tasks = context.get("tasks", [])
+        preferences = context.get("preferences", {})
+        plan_date = context.get("plan_date", datetime.now(UTC).strftime("%Y-%m-%d"))
+        day_offs = preferences.get("day_offs", [])
+
+        # Check day off
+        from datetime import datetime as dt
+        weekday = dt.fromisoformat(f"{plan_date}T00:00:00").strftime("%A")
+        if weekday in day_offs:
+            return DailyPlanResult(
+                status="day_off",
+                ordered_task_ids=[],
+                schedule_items=[],
+                overflow_task_ids=[task["id"] for task in tasks],
+                explanation=self._localized_text(
+                    context,
+                    en="Today is configured as a day off. No schedule generated.",
+                    vi="Hôm nay là ngày nghỉ. Không tạo lịch làm việc.",
+                ),
+                confidence=1.0,
+                highlights=[self._localized_text(context, en="Day off", vi="Ngày nghỉ")],
+            )
+
+        work_start = preferences.get("work_start_time", "09:00")
+        work_end = preferences.get("work_end_time", "17:00")
+        lunch_start = preferences.get("lunch_start_time", "12:00")
+        lunch_end = preferences.get("lunch_end_time", "13:00")
+
+        ordered_task_ids = [task["id"] for task in tasks]
+        schedule_items_result: list[ScheduleItemResult] = []
+        overflow_task_ids: list[str] = []
+
+        current_hour, current_min = map(int, work_start.split(":"))
+        end_hour, end_min = map(int, work_end.split(":"))
+        lunch_start_h, lunch_start_m = map(int, lunch_start.split(":"))
+        lunch_end_h, lunch_end_m = map(int, lunch_end.split(":"))
+
+        def to_minutes(h: int, m: int) -> int:
+            return h * 60 + m
+
+        current_mins = to_minutes(current_hour, current_min)
+        work_end_mins = to_minutes(end_hour, end_min)
+        lunch_start_mins = to_minutes(lunch_start_h, lunch_start_m)
+        lunch_end_mins = to_minutes(lunch_end_h, lunch_end_m)
+
+        for task in tasks:
+            duration = task.get("estimated_duration", 30)
+            # Check lunch overlap
+            if current_mins < lunch_start_mins and current_mins + duration > lunch_start_mins:
+                current_mins = lunch_end_mins
+            if current_mins >= work_end_mins:
+                overflow_task_ids.append(task["id"])
+                continue
+            if current_mins < lunch_end_mins and current_mins >= lunch_start_mins:
+                current_mins = lunch_end_mins
+            end_mins = current_mins + duration
+            if current_mins < lunch_start_mins and end_mins > lunch_start_mins:
+                current_mins = lunch_end_mins
+                end_mins = current_mins + duration
+            if end_mins > work_end_mins:
+                overflow_task_ids.append(task["id"])
+                continue
+
+            start_str = f"{plan_date}T{current_mins // 60:02d}:{current_mins % 60:02d}:00"
+            end_str = f"{plan_date}T{end_mins // 60:02d}:{end_mins % 60:02d}:00"
+            schedule_items_result.append(
+                ScheduleItemResult(task_id=task["id"], label=task.get("title", ""), start_time=start_str, end_time=end_str, reason="Scheduled by local fallback")
+            )
+            current_mins = end_mins
+
+        total = len(tasks)
+        scheduled = len(schedule_items_result)
+        status = "ok" if overflow_task_ids == [] else "partial"
+
+        return DailyPlanResult(
+            status=status,
+            ordered_task_ids=ordered_task_ids,
+            schedule_items=schedule_items_result,
+            overflow_task_ids=overflow_task_ids,
+            explanation=self._localized_text(
+                context,
+                en=f"Local fallback: Scheduled {scheduled}/{total} tasks within {work_start}-{work_end}.",
+                vi=f"Bản dự phòng: Đã xếp {scheduled}/{total} task trong khung {work_start}-{work_end}.",
+            ),
+            confidence=1.0,
+            highlights=[
+                self._localized_text(
+                    context,
+                    en=f"{scheduled} task(s) scheduled" if overflow_task_ids else f"All {scheduled} task(s) scheduled",
+                    vi=f"Đã xếp {scheduled} task" if not overflow_task_ids else f"Đã xếp {scheduled} task, còn {len(overflow_task_ids)} task chưa xếp",
+                )
+            ],
         )
-        return TaskOrderResult(ordered_task_ids=ordered_task_ids, explanation=explanation)
 
     def explain_plan(self, context: dict) -> str:
         plan = context["plan"]
@@ -98,38 +290,30 @@ class OpenAIDailyPlanProvider:
         self.api_key = api_key
         self.model = model
 
-    def rank_tasks(self, context: dict) -> TaskOrderResult:
+    def generate_daily_plan(self, context: dict) -> DailyPlanResult:
         language = str(context.get("language", "en"))
         language_label = self._language_label(language)
+        system_prompt = (
+            f"Always answer in the user's preferred language: {language_label}. "
+            "Only translate natural-language text. Do not translate JSON keys, enum values, field names, or schema. "
+            f"{_SYSTEM_PROMPT}"
+        )
         payload = {
             "model": self.model,
             "temperature": 0.2,
             "response_format": {"type": "json_object"},
             "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        f"You are a planning assistant. Always answer in the user's preferred language: {language_label}. "
-                        "Only translate natural-language text. Do not translate JSON keys, enum values, field names, or schema. "
-                        "Order the tasks for a day. Return JSON with keys ordered_task_ids and explanation. "
-                        "Only use the task ids provided in the input. Keep the explanation short."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": json.dumps(context, ensure_ascii=False),
-                },
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps(context, ensure_ascii=False)},
             ],
         }
         data = self._post(payload)
         try:
             content = data["choices"][0]["message"]["content"]
             parsed = json.loads(content)
-            ordered_task_ids = [str(task_id) for task_id in parsed["ordered_task_ids"]]
-            explanation = str(parsed["explanation"])
-            return TaskOrderResult(ordered_task_ids=ordered_task_ids, explanation=explanation)
+            return self._parse_result(parsed)
         except (KeyError, TypeError, ValueError) as exc:
-            raise ValueError("Invalid OpenAI response for task ranking") from exc
+            raise ValueError("Invalid OpenAI response for daily plan generation") from exc
 
     def explain_plan(self, context: dict) -> str:
         language = str(context.get("language", "en"))
@@ -191,6 +375,30 @@ class OpenAIDailyPlanProvider:
             return AdjustmentResult(suggestion=str(parsed["suggestion"]), explanation=str(parsed["explanation"]))
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError("Invalid OpenAI response for plan adjustment") from exc
+
+    def _parse_result(self, parsed: dict) -> DailyPlanResult:
+        schedule_items_raw = parsed.get("schedule_items", [])
+        schedule_items = [
+            ScheduleItemResult(
+                task_id=str(item["task_id"]),
+                label=str(item["label"]),
+                start_time=str(item["start_time"]),
+                end_time=str(item["end_time"]),
+                reason=str(item.get("reason", "")),
+            )
+            for item in schedule_items_raw
+        ]
+        ordered_task_ids = [str(tid) for tid in parsed.get("ordered_task_ids", [])]
+        overflow_task_ids = [str(tid) for tid in parsed.get("overflow_task_ids", [])]
+        return DailyPlanResult(
+            status=str(parsed.get("status", "needs_review")),
+            ordered_task_ids=ordered_task_ids,
+            schedule_items=schedule_items,
+            overflow_task_ids=overflow_task_ids,
+            explanation=str(parsed.get("explanation", "")),
+            confidence=float(parsed.get("confidence", 0.0)),
+            highlights=[str(h) for h in parsed.get("highlights", [])],
+        )
 
     def _post(self, payload: dict) -> dict:
         req = request.Request(
