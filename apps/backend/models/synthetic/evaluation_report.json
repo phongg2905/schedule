@@ -1,0 +1,33 @@
+{
+  "n_total": 593,
+  "n_positive": 12,
+  "n_negative": 581,
+  "positive_ratio": 0.0202,
+  "roc_auc": 0.9634,
+  "average_precision": 0.415,
+  "log_loss": 0.1714,
+  "precision": 0.2,
+  "recall": 0.9167,
+  "f1": 0.3284,
+  "top_k": {
+    "precision@1": 1.0,
+    "recall@1": 0.0833,
+    "precision@3": 0.3333,
+    "recall@3": 0.0833,
+    "precision@5": 0.4,
+    "recall@5": 0.1667,
+    "precision@10": 0.4,
+    "recall@10": 0.3333,
+    "precision@20": 0.4,
+    "recall@20": 0.6667
+  },
+  "train_label_distribution": {
+    "positive": 61,
+    "negative": 2737
+  },
+  "val_label_distribution": {
+    "positive": 12,
+    "negative": 581
+  },
+  "model_type": "LogisticRegression"
+}

@@ -1,0 +1,11 @@
+{
+  "model_type": "LogisticRegression",
+  "feature_pipeline": "ColumnTransformer",
+  "timestamp": "2026-07-26T15:44:08Z",
+  "n_features_raw": 38,
+  "feature_groups": {
+    "numeric": 12,
+    "categorical": 1,
+    "binary": 25
+  }
+}
