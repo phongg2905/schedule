@@ -1,0 +1,81 @@
+{
+  "ml": {
+    "metrics": {
+      "n_total": 2160,
+      "n_positive": 0,
+      "n_negative": 2160,
+      "positive_ratio": 0.0,
+      "roc_auc": null,
+      "average_precision": null,
+      "log_loss": null,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "train_label_distribution": {
+        "positive": 0,
+        "negative": 2856
+      },
+      "val_label_distribution": {
+        "positive": 0,
+        "negative": 2160
+      },
+      "model_type": "DummyClassifier",
+      "warning": "Only one class in training data. DummyClassifier fitted as placeholder."
+    },
+    "top_k": {
+      "precision@1": 0.0,
+      "recall@1": 0.0,
+      "precision@3": 0.0,
+      "recall@3": 0.0,
+      "precision@5": 0.0,
+      "recall@5": 0.0,
+      "precision@10": 0.0,
+      "recall@10": 0.0,
+      "precision@20": 0.0,
+      "recall@20": 0.0
+    },
+    "training_time_s": 1.256
+  },
+  "rule_based": {
+    "metrics": {
+      "n_total": 2160,
+      "n_positive": 0,
+      "n_negative": 2160,
+      "positive_ratio": 0.0,
+      "roc_auc": null,
+      "average_precision": null,
+      "log_loss": null,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "model_type": "RuleBased"
+    },
+    "top_k": {
+      "precision@1": 0.0,
+      "recall@1": 0.0,
+      "precision@3": 0.0,
+      "recall@3": 0.0,
+      "precision@5": 0.0,
+      "recall@5": 0.0,
+      "precision@10": 0.0,
+      "recall@10": 0.0,
+      "precision@20": 0.0,
+      "recall@20": 0.0
+    },
+    "scoring_time_s": 0.044
+  },
+  "comparison": {
+    "winner": "tie",
+    "n_train": 2856,
+    "n_val": 2160,
+    "positive_ratio_val": 0.0,
+    "rule_weights": {
+      "deadline_urgency": 3.0,
+      "priority": 2.0,
+      "recent_planning": 1.5,
+      "activity_momentum": 1.0,
+      "task_type": 0.5,
+      "temporal": 0.5
+    }
+  }
+}

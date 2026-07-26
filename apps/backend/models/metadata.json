@@ -1,0 +1,11 @@
+{
+  "model_type": "DummyClassifier",
+  "feature_pipeline": "ColumnTransformer",
+  "timestamp": "2026-07-26T15:33:25Z",
+  "n_features_raw": 38,
+  "feature_groups": {
+    "numeric": 7,
+    "categorical": 1,
+    "binary": 30
+  }
+}
