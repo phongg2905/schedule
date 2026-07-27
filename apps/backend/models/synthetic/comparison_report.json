@@ -1,52 +1,52 @@
 {
   "ml": {
     "metrics": {
-      "n_total": 593,
-      "n_positive": 12,
-      "n_negative": 581,
-      "positive_ratio": 0.0202,
-      "roc_auc": 0.9634,
-      "average_precision": 0.415,
-      "log_loss": 0.1714,
-      "precision": 0.2,
-      "recall": 0.9167,
-      "f1": 0.3284,
+      "n_total": 882,
+      "n_positive": 17,
+      "n_negative": 865,
+      "positive_ratio": 0.0193,
+      "roc_auc": 0.9588,
+      "average_precision": 0.3394,
+      "log_loss": 0.1571,
+      "precision": 0.1667,
+      "recall": 0.8235,
+      "f1": 0.2772,
       "train_label_distribution": {
-        "positive": 61,
-        "negative": 2737
+        "positive": 56,
+        "negative": 2453
       },
       "val_label_distribution": {
-        "positive": 12,
-        "negative": 581
+        "positive": 17,
+        "negative": 865
       },
       "model_type": "LogisticRegression"
     },
     "top_k": {
       "precision@1": 1.0,
-      "recall@1": 0.0833,
+      "recall@1": 0.0588,
       "precision@3": 0.3333,
-      "recall@3": 0.0833,
+      "recall@3": 0.0588,
       "precision@5": 0.4,
-      "recall@5": 0.1667,
+      "recall@5": 0.1176,
       "precision@10": 0.4,
-      "recall@10": 0.3333,
-      "precision@20": 0.4,
-      "recall@20": 0.6667
+      "recall@10": 0.2353,
+      "precision@20": 0.25,
+      "recall@20": 0.2941
     },
-    "training_time_s": 1.387
+    "training_time_s": 14.17
   },
   "rule_based": {
     "metrics": {
-      "n_total": 593,
-      "n_positive": 12,
-      "n_negative": 581,
-      "positive_ratio": 0.0202,
-      "roc_auc": 0.4023,
-      "average_precision": 0.0226,
-      "log_loss": 0.8094,
-      "precision": 0.0179,
-      "recall": 0.4167,
-      "f1": 0.0342,
+      "n_total": 882,
+      "n_positive": 17,
+      "n_negative": 865,
+      "positive_ratio": 0.0193,
+      "roc_auc": 0.4275,
+      "average_precision": 0.0195,
+      "log_loss": 0.8042,
+      "precision": 0.0193,
+      "recall": 0.4706,
+      "f1": 0.0371,
       "model_type": "RuleBased"
     },
     "top_k": {
@@ -59,15 +59,15 @@
       "precision@10": 0.0,
       "recall@10": 0.0,
       "precision@20": 0.05,
-      "recall@20": 0.0833
+      "recall@20": 0.0588
     },
-    "scoring_time_s": 0.0312
+    "scoring_time_s": 0.0197
   },
   "comparison": {
     "winner": "ml",
-    "n_train": 2798,
-    "n_val": 593,
-    "positive_ratio_val": 0.0202,
+    "n_train": 2509,
+    "n_val": 882,
+    "positive_ratio_val": 0.0193,
     "rule_weights": {
       "deadline_urgency": 3.0,
       "priority": 2.0,
