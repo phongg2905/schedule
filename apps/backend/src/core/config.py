@@ -1,6 +1,8 @@
 from functools import lru_cache
 from pathlib import Path
 
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,7 +23,18 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:3000"
     access_token_minutes: int = 15
     refresh_token_days: int = 30
-    debug_mode: bool = True
+    staging_strategy: str = "synthetic"
+
+    @field_validator("staging_strategy")
+    @classmethod
+    def _validate_staging_strategy(cls, v: str) -> str:
+        allowed = {"synthetic", "retrained"}
+        normalized = v.lower()
+        if normalized not in allowed:
+            raise ValueError(
+                f"Invalid STAGING_STRATEGY: {v!r}. Must be one of: {', '.join(sorted(allowed))}"
+            )
+        return normalized
 
 
 @lru_cache(maxsize=1)

@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -188,6 +188,30 @@ class ContextSnapshot(Base, TimestampMixin):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     snapshot_type: Mapped[str] = mapped_column(String(50), nullable=False)
     context_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+
+class MLPredictionLog(Base, TimestampMixin):
+    """Logs ML model predictions for candidate tasks during daily plan generation.
+
+    Each row represents one scored task from one plan generation call.
+    The ``outcome`` field is filled asynchronously by reconciling against
+    ``ActivityEvent`` (e.g., task_completed → outcome=completed).
+    This table is the primary source for monitoring prediction quality,
+    feedback signals, and drift detection.
+    """
+
+    __tablename__ = "ml_prediction_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
+    plan_id: Mapped[str | None] = mapped_column(ForeignKey("daily_plans.id"), index=True, nullable=True)
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), index=True, nullable=False)
+    prediction_score: Mapped[float] = mapped_column(Float, nullable=False)
+    confidence_band: Mapped[str] = mapped_column(String(10), nullable=False)
+    model_version: Mapped[str] = mapped_column(String(50), nullable=False)
+    model_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    outcome: Mapped[str | None] = mapped_column(String(20), nullable=True, comment="completed/skipped/deferred/pending — reconciled via ActivityEvent")
+    outcome_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class DaySummary(Base, TimestampMixin):

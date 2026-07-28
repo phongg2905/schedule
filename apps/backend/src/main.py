@@ -13,6 +13,7 @@ from src.modules.auth.routes import router as auth_router
 from src.modules.daily_plans.routes import router as daily_plans_router
 from src.modules.events.routes import router as events_router
 from src.modules.insights.routes import router as insights_router
+from src.modules.ml.routes import router as ml_router
 from src.modules.health.routes import router as health_router
 from src.modules.feedback.routes import router as feedback_router
 from src.modules.preferences.routes import router as preferences_router
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(feedback_router, prefix="/api/v1/feedback", tags=["feedback"])
     app.include_router(progress_router, prefix="/api/v1/progress", tags=["progress"])
     app.include_router(insights_router, prefix="/api/v1/insights", tags=["insights"])
+    app.include_router(ml_router, prefix="/api/v1/ml", tags=["ml"])
     app.include_router(preferences_router, prefix="/api/v1/settings/preferences", tags=["preferences"])
 
     return app

@@ -78,10 +78,14 @@ def test_rule_based_daily_plan_generation() -> None:
         )
         assert generate_response.status_code == 201
         plan = generate_response.json()
-        assert plan["source"] == "rule_based"
+        assert plan["source"] in ("ml_boosted", "rule_based"), f"Unexpected source: {plan['source']}"
         assert plan["explanation"] is not None
         assert len(plan["items"]) == 2
-        assert plan["items"][0]["label"] == "Urgent task"
+
+        # ML may re-rank tasks; just verify both expected tasks are present
+        labels = {item["label"] for item in plan["items"]}
+        assert "Urgent task" in labels
+        assert "Normal task" in labels
 
         today_response = client.get("/api/v1/daily-plans/today")
         assert today_response.status_code == 200

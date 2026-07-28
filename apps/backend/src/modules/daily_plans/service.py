@@ -4,7 +4,9 @@ from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from src.db.models import ActivityEvent, ContextSnapshot, DailyPlan, Schedule, ScheduleItem, Task, UserSchedulePreference, new_id
+from src.core.config import get_settings
+from src.db.models import ActivityEvent, ContextSnapshot, DailyPlan, Schedule, ScheduleItem, Task, User, UserSchedulePreference, new_id
+from src.modules.ml.prediction_service import MLPredictionService
 
 
 class DailyPlanService:
@@ -92,7 +94,59 @@ class DailyPlanService:
     def _generate_internal(self, plan_date: str, context_window_type: str, trigger_source: str, draft: bool) -> DailyPlan:
         existing_plan = self.db.query(DailyPlan).filter(DailyPlan.user_id == self.user_id, DailyPlan.plan_date == plan_date).one_or_none()
         preference = self.db.query(UserSchedulePreference).filter(UserSchedulePreference.user_id == self.user_id).one_or_none()
+        user = self.db.get(User, self.user_id)
+        timezone_str = user.timezone if user and user.timezone else "Asia/Saigon"
+
+        # --- 1. Get candidate tasks ---
         tasks = self._list_candidate_tasks()
+
+        # --- 2. ML scoring (re-rank tasks by predicted importance) ---
+        ml_result = None
+        _ml_service: MLPredictionService | None = None
+        try:
+            plan_date_obj = date.fromisoformat(plan_date)
+            snapshot_date = plan_date_obj - timedelta(days=1)
+
+            strategy = get_settings().staging_strategy
+            ml_service = MLPredictionService(strategy=strategy)
+            _ml_service = ml_service  # save for logging after plan is created
+            ml_result = ml_service.predict_result(
+                tasks, self.db, self.user_id,
+                snapshot_date=snapshot_date,
+                timezone_str=timezone_str,
+            )
+
+            if ml_result and ml_result.predictions:
+                # Build score lookup + confidence band lookup
+                score_map: dict[str, float] = {}
+                band_map: dict[str, str] = {}
+                for pred in ml_result.predictions:
+                    score_map[pred.task_id] = pred.score
+                    band_map[pred.task_id] = pred.confidence_band
+
+                # Sort: high confidence first (desc score), medium second, low/unscored last
+                def _ml_sort_key(task: Task) -> tuple[int, float, tuple]:
+                    band = band_map.get(task.id, "low")
+                    if band == "high":
+                        group = 0
+                    elif band == "medium":
+                        group = 1
+                    else:
+                        group = 2
+                    score = score_map.get(task.id, 0.0)
+                    # Within same group: higher score first; if no score, use original sort
+                    if band == "low":
+                        return (group, 0.0, self._task_sort_key(task))
+                    return (group, -score, ())
+
+                tasks.sort(key=_ml_sort_key)
+        except Exception as exc:
+            # ML scoring is best-effort; fall through to rule-based sort
+            import logging
+            logging.getLogger(__name__).warning(
+                "ML scoring skipped for plan %s: %s", plan_date, exc,
+            )
+
         snapshot_payload = {
             "plan_date": plan_date,
             "trigger_source": trigger_source,
@@ -100,6 +154,23 @@ class DailyPlanService:
             "preferences": self._preferences_payload(preference),
             "candidate_task_count": len(tasks),
         }
+
+        # Enrich snapshot with ML metadata if available
+        if ml_result and not ml_result.fallback_used:
+            snapshot_payload["ml"] = {
+                "status": ml_result.result_status,
+                "classifier": ml_result.classifier_type,
+                "n_scored": ml_result.n_scored,
+                "n_high_confidence": ml_result.n_high_confidence,
+                "n_medium_confidence": ml_result.n_medium_confidence,
+                "fallback_used": ml_result.fallback_used,
+            }
+            # Log top-10 scores (truncated for payload size)
+            top_scores = sorted(
+                [(p.task_id[:8], p.score, p.confidence_band) for p in ml_result.predictions],
+                key=lambda x: -x[1],
+            )[:10]
+            snapshot_payload["ml"]["top_scores"] = top_scores
         snapshot = ContextSnapshot(
             id=new_id(),
             user_id=self.user_id,
@@ -109,6 +180,12 @@ class DailyPlanService:
         self.db.add(snapshot)
 
         plan = existing_plan or DailyPlan(id=new_id(), user_id=self.user_id, plan_date=plan_date, status="draft", source="rule_based")
+        self.db.add(plan)  # add early so FK references (MLPredictionLog) work on autoflush
+
+        # Log ML predictions for monitoring (best-effort)
+        if _ml_service and ml_result and ml_result.predictions:
+            _ml_service.log_predictions(self.db, plan.id, self.user_id, ml_result)
+
         if existing_plan and existing_plan.schedules:
             for schedule in list(existing_plan.schedules):
                 for item in list(schedule.items):
@@ -120,7 +197,7 @@ class DailyPlanService:
                     self.db.delete(item)
                 self.db.delete(schedule)
         plan.status = "draft" if draft else "generated"
-        plan.source = "rule_based"
+        plan.source = "ml_boosted" if (ml_result and not ml_result.fallback_used) else "rule_based"
         plan.context_snapshot_id = snapshot.id
 
         schedule = self.db.query(Schedule).filter(Schedule.user_id == self.user_id, Schedule.daily_plan_id == plan.id).one_or_none()
@@ -148,7 +225,6 @@ class DailyPlanService:
         )
         plan.explanation = self._build_explanation(scheduled_items, overflow_tasks, preference, day_off)
 
-        self.db.add(plan)
         self.db.add(schedule)
         for item in scheduled_items:
             self.db.add(item)
