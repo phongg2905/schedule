@@ -2,7 +2,7 @@
 
 ## Goal
 
-Stabilize the MVP before release. No new feature work.
+Stabilize the MVP before RC1. No new feature work.
 
 ## Scope
 
