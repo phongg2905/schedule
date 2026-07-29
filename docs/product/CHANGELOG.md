@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-29 - Documentation aligned with current RC1 scope
+
+### Changed
+
+- README current status updated to reflect RC1 hardening and QA instead of older phase wording
+- ML plan top summary now separates current state from historical audit notes
+- Phase 6.5 hardening doc wording updated to reference RC1 explicitly
+
 ## 2026-07-01 - Internationalization baseline added
 
 ### Added

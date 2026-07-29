@@ -1,38 +1,30 @@
 # ML Plan: Next-Day Task Prediction
 
-Status: Phase 6 complete
-Last updated: 2026-07-27
+Status: Active planning and validation doc
+Last validated: 2026-07-29
 
 ## Goal
 
-Build a practical ML feature that predicts the set of tasks that should appear in tomorrow's plan, using existing user history, backlog, daily plans, schedule items, activity events, and feedback.
+Predict which tasks should appear in tomorrow's plan using user history, backlog, schedules, activity events, and feedback.
+
+## Current Focus
+
+- Keep the ML feature practical and safe rather than turning it into a separate product
+- Preserve the rule-based fallback when the model is missing or confidence is low
+- Keep synthetic and retrained artifacts available for staging and comparison
+- Track release readiness separately in `docs/release/RC1-QA.md`
 
 ## How to use this file
 
-- Update `Status` for each checklist item as work progresses.
-- Add short notes only when something is blocked, changed, or validated.
-- Keep the order unless a dependency changes.
+- Treat the section below as an audit trail and implementation history
+- Revalidate any numeric claim before using it as current status
+- Update only the top summary when the current state changes
 
-## Audit Summary
+## Historical Audit Summary
 
-- Phase 1 is complete: sources, label rule, snapshot boundary, leakage risks, and data quality notes are confirmed.
-- The next implementation step is Phase 2: build an offline snapshot extraction job for training data generation.
-- Use user timezone for all day boundaries and convert end-of-day snapshots to UTC before querying.
-- Treat sample 24h-block seed data as noisy and filter or down-weight it during training.
-- Use `completed_at > end_of_D` instead of `status != completed` when deciding whether a task was completed at snapshot time.
-- Current conclusion: data is ready for dataset building, but no training pipeline exists yet.
-- `_get_user_context_features` has been optimized from 6 queries to 1 aggregate query.
-- All 47 tests pass after the optimization, and the benchmark shows the hotspot time dropped from about `0.311s` to `0.125s` per snapshot.
-- Phase 2 is fully closed: all blockers before Phase 3 are done and the realistic label verification passed with expected labels.
-- Phase 3 is fully closed: baseline training pipeline, tests, artifact saving, and weighted LogisticRegression with ~33% F1 on synthetic data.
-- Phase 4 is fully closed: benchmark comparison, false positive / false negative analysis, and release threshold definition are complete.
-- `scripts/rule_baseline.py` implements 6 heuristic scorers. On synthetic dataset (3,391 rows, 2.2% positive), **ML beats rule-based 9.6x F1** (0.33 vs 0.03), **2.4x AUROC** (0.96 vs 0.40). precision@1=1.0 (ML) vs 0.0 (rule-based).
-- `scripts/generate_synthetic_dataset.py` creates a reproducible synthetic dataset with both labels (via backlog tasks pre-planned for D+1). Current output: `data/synthetic_training_dataset.parquet` (3,391 rows, 73 positive).
-- Release threshold is met, so Phase 5 Integration can start safely with fallback and confidence gating.
-- Retraining has been completed on a larger dataset: `10,616` rows, LogisticRegression, `AUROC=0.98`, inference verified, all `164` tests pass, and the retrained model is now copied to `models/synthetic/` as the default artifact.
-- The retrained model currently has lower `F1` (`0.13`) than the previous synthetic model (`0.33`) because routine tasks diluted the positive ratio to `0.69%`. It is more realistic for production distribution, but the older synthetic model is still likely better for recommendation quality.
-- Phase 6 is fully closed: monitoring endpoint (`GET /api/v1/ml/monitoring`), outcome reconciliation (`scripts/reconcile_ml_outcomes.py`), STAGING_STRATEGY env var for A/B staging, `MLPredictionLog` table and migration, model version tracking, prediction logging integrated into plan generation, and monitoring CLI script are all complete.
-- All 170 tests pass (164 existing + 4 strategy tests + 3 monitoring endpoint tests).
+- The notes below were written during the original ML buildout
+- They are preserved for reference and may contain dated counts, benchmark numbers, or status labels
+- Do not treat them as current release status unless they have been rechecked
 
 ## Phase 6: Monitoring Feedback & Drift
 

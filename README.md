@@ -1,22 +1,20 @@
 # AI Planner
 
-AI Planner is an AI companion for planning, schedule adjustment, behavior tracking, and progress review.
+AI Planner is an AI planning assistant for tasks, daily scheduling, progress tracking, and review.
 
 ## Current Status
 
-- Phase 6.5: Hardening in progress
-- Phase 5 foundation is complete and runnable
-- Authentication, Task CRUD, Working Schedule & Preferences, Rule-based Daily Plan, AI Generate/Explain, Daily Progress, AI Adjustment, and Insight are implemented
-- Internationalization baseline is implemented with English and Vietnamese support
-- Product, UX, data, and architecture blueprints are the source of truth
-- Persistence uses managed PostgreSQL on Supabase
-- Schema changes are managed through Alembic migrations
+- Core MVP features are implemented: authentication, task CRUD, working schedule and preferences, rule-based daily planning, AI generate and explain, daily progress, AI adjustment, insights, and ML monitoring
+- Internationalization is wired in with English and Vietnamese support
+- The project is in RC1 hardening and QA, with release readiness tracked in `docs/release/RC1-QA.md`
+- Product, UX, data, and architecture docs are the source of truth for scope and behavior
+- Runtime persistence uses PostgreSQL through environment configuration, and schema changes are managed with Alembic migrations
 
 ## Product Positioning
 
-- Not a Todo App
-- Not a Calendar App
-- Not a ChatGPT Clone
+- Not a Todo app
+- Not a Calendar app
+- Not a generic ChatGPT clone
 - AI recommends, never forces
 
 ## Core Documents
@@ -42,7 +40,7 @@ AI Planner is an AI companion for planning, schedule adjustment, behavior tracki
 
 ## Database Setup
 
-- The project does not ship with a local database
-- Use the managed PostgreSQL connection from your deployment environment
+- The project is configured through environment variables
+- Use the PostgreSQL connection provided by your deployment or dev environment
 - Apply schema changes with `cd apps/backend && alembic upgrade head`
 - The application runtime reads `DATABASE_URL` from the environment
